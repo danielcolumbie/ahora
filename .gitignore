@@ -1,0 +1,12 @@
+# Gradle / Android Studio
+.gradle/
+build/
+local.properties
+*.iml
+
+# Firmas de release (nunca se suben)
+*.jks
+*.keystore
+
+# Sistema
+.DS_Store
