@@ -1,0 +1,11 @@
+Ahora es una app de tareas minimalista que te ayuda a sacar las cosas de tu cabeza y ponerlas en claro.
+
+• Crea, edita, completa y elimina tareas en segundos
+• Vista "Hoy" con lo que toca ahora y vista "Todas" con el resto
+• Recordatorios y notificaciones locales
+• Entrada por voz: dicta tus tareas sin escribir
+• Deshacer al eliminar, por si te arrepientes
+• Temas claro, oscuro y automático
+• Funciona 100% sin conexión: tus datos nunca salen de tu teléfono
+
+Sin cuentas, sin publicidad, sin rastreo. Solo tus tareas.

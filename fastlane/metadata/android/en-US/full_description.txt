@@ -1,0 +1,11 @@
+Ahora is a minimalist to-do app that helps you get things out of your head and into the clear.
+
+• Create, edit, complete and delete tasks in seconds
+• "Today" view with what's due now and "All" view with the rest
+• Local reminders and notifications
+• Voice input: dictate your tasks instead of typing
+• Undo on delete, in case you change your mind
+• Light, dark and automatic themes
+• Works 100% offline: your data never leaves your phone
+
+No accounts, no ads, no tracking. Just your tasks.

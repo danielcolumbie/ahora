@@ -1,0 +1,44 @@
+# Borrador de metadatos para solicitar la inclusión de Ahora en F-Droid.
+# Se envía como Merge Request al repo fdroiddata:
+#   https://gitlab.com/fdroid/fdroiddata
+# El archivo debe llamarse metadata/com.ahora.app.yml
+# Sustituir <USUARIO> por el usuario real de GitHub antes de enviarlo.
+
+Categories:
+  - Productivity
+License: MIT
+AuthorName: Daniel Columbié
+WebSite: https://github.com/<USUARIO>/ahora
+SourceCode: https://github.com/<USUARIO>/ahora
+IssueTracker: https://github.com/<USUARIO>/ahora/issues
+
+AutoName: Ahora
+Summary: Sácalo de tu cabeza. Tus tareas, claras y sin ruido.
+Description: |-
+  Ahora es una app de tareas minimalista que te ayuda a sacar las
+  cosas de tu cabeza y ponerlas en claro.
+
+  * Crea, edita, completa y elimina tareas en segundos
+  * Vista "Hoy" con lo que toca ahora y vista "Todas" con el resto
+  * Recordatorios y notificaciones locales
+  * Entrada por voz: dicta tus tareas sin escribir
+  * Deshacer al eliminar, por si te arrepientes
+  * Temas claro, oscuro y automático
+  * Funciona 100% sin conexión: tus datos nunca salen de tu teléfono
+
+  Sin cuentas, sin publicidad, sin rastreo. Solo tus tareas.
+
+RepoType: git
+Repo: https://github.com/<USUARIO>/ahora.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.0
+CurrentVersionCode: 1

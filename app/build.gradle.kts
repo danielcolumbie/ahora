@@ -28,6 +28,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Firma release solo si hay keystore configurado por variables de
+            // entorno (nunca se sube el keystore al repo). F-Droid firma con su
+            // propia clave, así que esto no le afecta.
+            System.getenv("AHORA_KEYSTORE_PATH")?.let { ksPath ->
+                signingConfigs.create("release") {
+                    storeFile = file(ksPath)
+                    storePassword = System.getenv("AHORA_KEYSTORE_PASSWORD")
+                    keyAlias = System.getenv("AHORA_KEY_ALIAS")
+                    keyPassword = System.getenv("AHORA_KEY_PASSWORD")
+                }
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
