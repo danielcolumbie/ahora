@@ -1,17 +1,30 @@
 package com.ahora.app.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
@@ -20,6 +33,7 @@ import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,7 +47,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
 
-/** Fila de tarea: checkbox circular, texto, hora/fecha y acciones. */
+/** Tarjeta de tarea: checkbox circular, texto, pill de recordatorio y acciones. */
 @Composable
 fun TaskRow(
     task: Task,
@@ -54,57 +68,109 @@ fun TaskRow(
         MaterialTheme.typography.bodyLarge
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
         modifier = modifier
             .fillMaxWidth()
             .alpha(alpha)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        CircularCheckButton(
-            checked = task.isDone,
-            onToggle = onToggleDone
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onEdit)
-                .padding(horizontal = 8.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Text(text = task.title, style = textStyle)
-            task.reminderAt?.let { at ->
-                Text(
-                    text = formatReminderLabel(at),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+            CircularCheckButton(
+                checked = task.isDone,
+                onToggle = onToggleDone
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 8.dp)
+            ) {
+                Text(text = task.title, style = textStyle)
+                task.reminderAt?.let { at ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    ReminderPill(label = formatReminderLabel(at))
+                }
+            }
+            IconButton(onClick = onToggleReminder) {
+                Icon(
+                    imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
+                    contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio"
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = "Eliminar tarea"
                 )
             }
         }
-        IconButton(onClick = onToggleReminder) {
+    }
+}
+
+/** Pill pequeña con campana para la etiqueta del recordatorio. */
+@Composable
+private fun ReminderPill(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        contentColor = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+        ) {
             Icon(
-                imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
-                contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio"
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
             )
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = "Eliminar tarea"
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall
             )
         }
     }
 }
 
-/** Botón circular de completado, con semántica de checkbox para accesibilidad. */
+/**
+ * Botón circular de completado, con semántica de checkbox para accesibilidad.
+ * Al marcar/desmarcar, el círculo rebota con un spring y el check entra con escala.
+ */
 @Composable
 private fun CircularCheckButton(
     checked: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderColor =
-        if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    val background = if (checked) MaterialTheme.colorScheme.primary else Color.Transparent
+    val borderColor by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.outline,
+        label = "checkBorder"
+    )
+    val background by animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary
+        else Color.Transparent,
+        label = "checkBackground"
+    )
+    // Rebote sutil del círculo al cambiar de estado.
+    val circleSize by animateDpAsState(
+        targetValue = if (checked) 27.dp else 24.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "checkCircleSize"
+    )
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -119,12 +185,21 @@ private fun CircularCheckButton(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(24.dp)
+                .size(circleSize)
                 .clip(CircleShape)
                 .background(background)
                 .border(2.dp, borderColor, CircleShape)
         ) {
-            if (checked) {
+            AnimatedVisibility(
+                visible = checked,
+                enter = scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,

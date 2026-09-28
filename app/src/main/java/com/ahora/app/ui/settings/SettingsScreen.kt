@@ -22,6 +22,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
+import com.ahora.app.notifications.NotificationHelper
 
 /** Ajustes mínimos: apariencia, notificaciones, acerca de y licencias. */
 @Composable
@@ -49,6 +51,12 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* el permiso se pide solo al activar; sin él, no hay avisos */ }
+
+    // En Android 8+ el sonido y la vibración los gobierna el canal del sistema:
+    // cada cambio en los interruptores se aplica al canal para que tenga efecto real.
+    LaunchedEffect(sound, vibration) {
+        NotificationHelper.applyPreferences(context, sound, vibration)
+    }
 
     fun toggleNotifications(enabled: Boolean) {
         viewModel.setNotificationsEnabled(enabled)

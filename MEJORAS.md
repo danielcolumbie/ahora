@@ -28,10 +28,26 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 12. Modo compacto de lista (más tareas en pantalla).
 13. Ordenar manual (arrastrar) en "Todas".
 
-## Feedback de Daniel (pendiente)
-_(sus reportes van aquí arriba del backlog)_
+## Feedback de Daniel
+- 2026-09-28: «La app no te notifica cuando se cumple el tiempo estimado para hacer la tarea o lo hace muy tenue» → parche de notificaciones en 1.1.0. ✅ resuelto
+- 2026-09-28: «Que te salga en la barra de notificaciones del teléfono» → icono propio de campana + canal nuevo de alta importancia. ✅ resuelto
+- 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.1.0 (2026-09-28) — diseño y animación
+- Transiciones suaves entre pantallas (fundido + deslizamiento).
+- Checkbox circular con rebote spring al marcar/desmarcar; el check entra con escala.
+- La lista se reordena con suavidad (animateItem) y las tareas entran de forma escalonada.
+- Tarjetas de tarea sutiles: esquinas redondeadas, elevación tonal mínima, 8dp de separación.
+- Recordatorio como pill con campana en vez de texto plano.
+- Anillos pulsantes en el micrófono mientras escucha.
+- Estado vacío con mejor jerarquía tipográfica y entrada animada.
+- Parche de notificaciones (feedback de Daniel):
+  - Icono propio de campana para la barra de estado (el icono del launcher ahí se veía tenue/invisible).
+  - Canal nuevo `ahora_recordatorios_v2` de alta importancia con sonido, vibración, luz y visibilidad en pantalla de bloqueo explícitos; se elimina el canal viejo.
+  - Los interruptores de sonido/vibración de Ajustes ahora se aplican de verdad al canal del sistema (en Android 8+ el canal manda, no la notificación).
+  - El permiso de notificaciones se pide al guardar un recordatorio, no solo en Ajustes.
+  - Alarmas exactas en Android 11 y anteriores (antes caían en la vía inexacta); en Android 12+ se avisa con un diálogo para permitirlas en ajustes del sistema.
 ### 1.0.0 (2026-09-28) — versión inicial
 - Crear, editar, completar y eliminar tareas (con deshacer).
 - Vistas Hoy / Todas / Ajustes.

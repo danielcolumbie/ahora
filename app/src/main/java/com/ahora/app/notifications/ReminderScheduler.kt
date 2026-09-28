@@ -4,11 +4,18 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 
 /**
  * Programa recordatorios con AlarmManager: funcionan sin internet
  * y sobreviven al cierre de la app (se reprograman al reiniciar).
+ *
+ * Precisión:
+ * - Android 11 y anteriores: alarma exacta siempre (no necesita permiso).
+ * - Android 12+: alarma exacta solo con el permiso de "alarmas exactas";
+ *   sin él se usa la mejor aproximación disponible, que puede llegar tarde.
  */
 class ReminderScheduler(private val context: Context) {
 
@@ -33,10 +40,10 @@ class ReminderScheduler(private val context: Context) {
 
     fun schedule(taskId: Long, atMillis: Long) {
         val pending = pendingIntent(taskId)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+        if (hasExactAlarmPermission()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
         } else {
-            // Sin permiso de alarmas exactas: se usa la mejor aproximación disponible.
+            // Sin permiso de alarmas exactas (Android 12+): la mejor aproximación disponible.
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
         }
     }
@@ -44,4 +51,25 @@ class ReminderScheduler(private val context: Context) {
     fun cancel(taskId: Long) {
         alarmManager.cancel(pendingIntent(taskId))
     }
+
+    /**
+     * true si se puede usar alarma exacta. En Android 11 y anteriores siempre
+     * es true (no existe el permiso); en Android 12+ depende del usuario.
+     */
+    fun hasExactAlarmPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
+    /**
+     * Intent a los ajustes del sistema para pedir el permiso de alarmas
+     * exactas (Android 12+). null en versiones anteriores (no hace falta).
+     */
+    fun exactAlarmSettingsIntent(): Intent? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent(
+                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                Uri.parse("package:${context.packageName}")
+            )
+        } else {
+            null
+        }
 }

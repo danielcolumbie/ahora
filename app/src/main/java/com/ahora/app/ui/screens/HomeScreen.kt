@@ -4,7 +4,14 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -44,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
@@ -180,7 +188,8 @@ fun HomeScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón circular de micrófono con animación sutil al tocarlo.
+            // Botón circular de micrófono: escala sutil al tocarlo y
+            // anillos pulsantes mientras escucha.
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -192,6 +201,10 @@ fun HomeScreen(viewModel: MainViewModel) {
                     targetValue = if (pressed || listening) 1.12f else 1f,
                     label = "micScale"
                 )
+                if (listening) {
+                    PulseRing(delayMillis = 0)
+                    PulseRing(delayMillis = 800)
+                }
                 FilledIconButton(
                     onClick = { onMicClick() },
                     modifier = Modifier
@@ -245,4 +258,42 @@ fun HomeScreen(viewModel: MainViewModel) {
             }
         }
     }
+}
+
+/**
+ * Anillo que se expande y se desvanece en bucle, detrás del botón de
+ * micrófono, mientras la app está escuchando.
+ */
+@Composable
+private fun PulseRing(delayMillis: Int) {
+    val infinite = rememberInfiniteTransition(label = "micPulse")
+    val ringScale by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.55f,
+        animationSpec = infiniteRepeatable<Float>(
+            animation = tween(1600, delayMillis = delayMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulseScale"
+    )
+    val ringAlpha by infinite.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable<Float>(
+            animation = tween(1600, delayMillis = delayMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulseAlpha"
+    )
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .graphicsLayer {
+                scaleX = ringScale
+                scaleY = ringScale
+                alpha = ringAlpha
+            }
+            .clip(CircleShape)
+            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+    )
 }

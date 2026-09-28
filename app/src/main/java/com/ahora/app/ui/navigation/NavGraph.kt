@@ -1,5 +1,13 @@
 package com.ahora.app.ui.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -44,6 +52,19 @@ private val destinations = listOf(
     Destination(Routes.AJUSTES, "Ajustes", Icons.Filled.Settings)
 )
 
+/** Transiciones suaves entre pantallas: fundido + deslizamiento corto. */
+private fun screenEnter(reverse: Boolean = false): EnterTransition =
+    fadeIn(animationSpec = tween(280, easing = FastOutSlowInEasing)) +
+        slideInHorizontally(
+            animationSpec = tween(280, easing = FastOutSlowInEasing)
+        ) { fullWidth -> if (reverse) -fullWidth / 6 else fullWidth / 6 }
+
+private fun screenExit(reverse: Boolean = false): ExitTransition =
+    fadeOut(animationSpec = tween(240, easing = FastOutSlowInEasing)) +
+        slideOutHorizontally(
+            animationSpec = tween(240, easing = FastOutSlowInEasing)
+        ) { fullWidth -> if (reverse) fullWidth / 6 else -fullWidth / 6 }
+
 /** Navegación mínima: Hoy, Todas y Ajustes. Nada más. */
 @Composable
 fun NavGraph(
@@ -81,9 +102,27 @@ fun NavGraph(
             startDestination = Routes.HOY,
             modifier = Modifier.padding(padding)
         ) {
-            composable(Routes.HOY) { HomeScreen(mainViewModel) }
-            composable(Routes.TODAS) { AllTasksScreen(mainViewModel) }
-            composable(Routes.AJUSTES) { SettingsScreen(settingsViewModel) }
+            composable(
+                route = Routes.HOY,
+                enterTransition = { screenEnter() },
+                exitTransition = { screenExit() },
+                popEnterTransition = { screenEnter(reverse = true) },
+                popExitTransition = { screenExit(reverse = true) }
+            ) { HomeScreen(mainViewModel) }
+            composable(
+                route = Routes.TODAS,
+                enterTransition = { screenEnter() },
+                exitTransition = { screenExit() },
+                popEnterTransition = { screenEnter(reverse = true) },
+                popExitTransition = { screenExit(reverse = true) }
+            ) { AllTasksScreen(mainViewModel) }
+            composable(
+                route = Routes.AJUSTES,
+                enterTransition = { screenEnter() },
+                exitTransition = { screenExit() },
+                popEnterTransition = { screenEnter(reverse = true) },
+                popExitTransition = { screenExit(reverse = true) }
+            ) { SettingsScreen(settingsViewModel) }
         }
     }
 }
