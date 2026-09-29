@@ -34,6 +34,16 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.2.0 (2026-09-29) — estabilidad (ETAPA 2)
+- CRÍTICO: los recordatorios ya se programan en el día local correcto. Antes, en Cuba (y otras zonas al oeste de UTC), elegir una fecha la programaba el día anterior. Pruebas unitarias deterministas para `America/Havana` y `Asia/Tokyo`.
+- La app ya no se cae al mostrar una notificación si el permiso fue revocado: comprueba `POST_NOTIFICATIONS` / `areNotificationsEnabled()` y protege `notify()`.
+- Las alarmas exactas degradan a inexactas en vez de tumbar la app si el permiso `SCHEDULE_EXACT_ALARM` cambia a mitad de camino.
+- El "Deshacer" tras eliminar ya funciona también en la pantalla "Todas" (antes el aviso se perdía).
+- Los recordatorios vencidos se limpian solos: al sonar la alarma y al completar la tarea (el pill ya no queda obsoleto).
+- La base de datos Room exporta su schema v1 (`app/schemas/`): base para futuras migraciones sin perder datos.
+- El reconocimiento de voz libera el servicio del sistema al terminar o fallar (ya no queda reservado en segundo plano).
+- Los fallos del ViewModel (marcar, eliminar, deshacer, quitar recordatorio) muestran un aviso en vez de dejar la app en estado roto.
+- Corrección del changelog 1.1.0: los interruptores de sonido/vibración NO cambian un canal ya creado (limitación de Android); el texto anterior era inexacto. Los interruptores quedan como están hasta que Daniel decida el producto.
 ### 1.1.0 (2026-09-28) — diseño y animación
 - Transiciones suaves entre pantallas (fundido + deslizamiento).
 - Checkbox circular con rebote spring al marcar/desmarcar; el check entra con escala.
@@ -45,7 +55,7 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - Parche de notificaciones (feedback de Daniel):
   - Icono propio de campana para la barra de estado (el icono del launcher ahí se veía tenue/invisible).
   - Canal nuevo `ahora_recordatorios_v2` de alta importancia con sonido, vibración, luz y visibilidad en pantalla de bloqueo explícitos; se elimina el canal viejo.
-  - Los interruptores de sonido/vibración de Ajustes ahora se aplican de verdad al canal del sistema (en Android 8+ el canal manda, no la notificación).
+  - Los interruptores de sonido/vibración de Ajustes se aplican al crear el canal. Corrección (auditoría ETAPA 1): Android NO permite cambiar el sonido ni la vibración de un canal ya creado, así que los interruptores no tienen efecto real sobre el canal existente — la afirmación anterior era inexacta. Pendiente de decisión de producto (quitarlos o llevar a los ajustes del sistema).
   - El permiso de notificaciones se pide al guardar un recordatorio, no solo en Ajustes.
   - Alarmas exactas en Android 11 y anteriores (antes caían en la vía inexacta); en Android 12+ se avisa con un diálogo para permitirlas en ajustes del sistema.
 ### 1.0.0 (2026-09-28) — versión inicial
