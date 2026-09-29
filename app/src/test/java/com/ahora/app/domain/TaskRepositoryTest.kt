@@ -46,6 +46,14 @@ class TaskRepositoryTest {
             return id
         }
 
+        /** Cuántas veces se llamó al lote: la importación debe usarlo una sola vez. */
+        var upsertAllCalls = 0
+
+        override suspend fun upsertAll(tasks: List<Task>) {
+            upsertAllCalls++
+            tasks.forEach { upsert(it) }
+        }
+
         override suspend fun deleteById(id: Long) {
             tasks.value = tasks.value.filterNot { it.id == id }
         }
@@ -61,6 +69,10 @@ class TaskRepositoryTest {
         // para que "pendiente" se evalúe en el tiempo del test.
         override suspend fun getPendingReminders(now: Long): List<Task> =
             tasks.value.filter { it.reminderAt != null && !it.isDone && it.reminderAt > NOW }
+
+        // Misma semántica que el EXISTS de Room: solo existencia, sin lista.
+        override suspend fun hasPendingReminders(now: Long): Boolean =
+            tasks.value.any { it.reminderAt != null && !it.isDone && it.reminderAt > NOW }
 
         override suspend fun clearExpiredReminders(now: Long) {
             tasks.value = tasks.value.map { task ->
@@ -345,6 +357,22 @@ class TaskRepositoryTest {
         // Sin duplicados: el id se conserva y el upsert reemplaza.
         assertEquals(1, dao.getAll().size)
         assertEquals("una", dao.getById(20)?.title)
+    }
+
+    @Test
+    fun `importTasks guarda el lote en una sola llamada (una transaccion)`() = runTest {
+        val json = TaskBackup.tasksToJson(
+            listOf(
+                Task(id = 30, title = "a", createdAt = NOW),
+                Task(id = 31, title = "b", createdAt = NOW),
+                Task(id = 32, title = "c", createdAt = NOW)
+            ),
+            exportedAt = NOW
+        )
+        repo.importTasks(json)
+        // Una sola llamada al lote para las 3 tareas, no un upsert por tarea.
+        assertEquals(1, dao.upsertAllCalls)
+        assertEquals(3, dao.getAll().size)
     }
 
     @Test

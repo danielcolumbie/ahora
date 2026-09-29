@@ -44,7 +44,13 @@ internal fun shouldShowExactAlarmNudge(
 /** Estado y acciones compartidos por las pantallas Hoy y Todas. */
 class MainViewModel(
     private val repository: TaskRepository,
-    private val scheduler: AlarmScheduler,
+    /**
+     * Público para que las pantallas lo pasen a [com.ahora.app.ui.components.TasksColumn]:
+     * así se reutiliza esta única instancia en vez de construir un
+     * `ReminderScheduler` nuevo en cada interacción (cada construcción
+     * pide el servicio de alarmas al sistema).
+     */
+    val scheduler: AlarmScheduler,
     private val settings: SettingsRepository
 ) : ViewModel() {
 

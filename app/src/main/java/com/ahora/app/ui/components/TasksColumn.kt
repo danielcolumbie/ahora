@@ -27,12 +27,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
-import com.ahora.app.notifications.ReminderScheduler
+import com.ahora.app.notifications.AlarmScheduler
 import com.ahora.app.ui.theme.Motion
 
 /**
  * Lista de tareas con los diálogos de editar y de recordatorio integrados.
  * La reutilizan las pantallas Hoy y Todas.
+ *
+ * [alarmScheduler] es la instancia única del contenedor de la app: se pasa
+ * desde fuera para no construir un programador nuevo (con su
+ * `getSystemService`) en cada confirmación de recordatorio.
  *
  * Las filas se reordenan con suavidad (animateItemPlacement) y, solo la primera vez
  * que se muestra la lista, entran de forma escalonada.
@@ -47,6 +51,7 @@ fun TasksColumn(
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
+    alarmScheduler: AlarmScheduler,
     modifier: Modifier = Modifier
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
@@ -72,7 +77,7 @@ fun TasksColumn(
         reminderTask = null
         // Android 12+: sin permiso de alarmas exactas el aviso puede llegar tarde.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !ReminderScheduler(context).hasExactAlarmPermission()
+            !alarmScheduler.hasExactAlarmPermission()
         ) {
             showExactAlarmDialog = true
         }
@@ -170,7 +175,7 @@ fun TasksColumn(
             confirmButton = {
                 TextButton(onClick = {
                     showExactAlarmDialog = false
-                    ReminderScheduler(context).exactAlarmSettingsIntent()
+                    alarmScheduler.exactAlarmSettingsIntent()
                         ?.let { context.startActivity(it) }
                 }) { Text("Ir a ajustes") }
             },

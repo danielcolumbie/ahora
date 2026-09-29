@@ -18,6 +18,14 @@ interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: Task): Long
 
+    /**
+     * Inserción en lote: Room la envuelve en una sola transacción.
+     * Se usa al importar un respaldo para no abrir una transacción
+     * por tarea (menos escrituras a disco, menos batería).
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(tasks: List<Task>)
+
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
 
@@ -30,6 +38,15 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE reminderAt IS NOT NULL AND isDone = 0 AND reminderAt > :now")
     suspend fun getPendingReminders(now: Long = System.currentTimeMillis()): List<Task>
+
+    /**
+     * Consulta de existencia para saber si hay recordatorios por sonar
+     * sin materializar la lista completa en memoria: basta un booleano.
+     * (Antes se cargaban todas las tareas pendientes solo para ver si
+     * la lista estaba vacía.)
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE reminderAt IS NOT NULL AND isDone = 0 AND reminderAt > :now)")
+    suspend fun hasPendingReminders(now: Long = System.currentTimeMillis()): Boolean
 
     /**
      * Limpia los recordatorios ya vencidos para que el pill de la tarea no

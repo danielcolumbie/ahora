@@ -297,6 +297,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                     onSetReminder = viewModel::setReminder,
                     onClearReminder = viewModel::clearReminder,
                     onPastReminder = viewModel::pastReminderSelected,
+                    alarmScheduler = viewModel.scheduler,
                     modifier = Modifier.weight(1f)
                 )
             }

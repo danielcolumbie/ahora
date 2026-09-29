@@ -103,7 +103,7 @@ class TaskRepository(
      * sin recordatorios pendientes, el aviso sería ruido.
      */
     suspend fun hasFutureReminders(): Boolean =
-        dao.getPendingReminders(clock()).isNotEmpty()
+        dao.hasPendingReminders(clock())
 
     /** Resultado de importar un respaldo: cuántas entraron y cuántas se omitieron. */
     data class ImportResult(val imported: Int, val skipped: Int)
@@ -123,10 +123,10 @@ class TaskRepository(
      */
     suspend fun importTasks(json: String): ImportResult {
         val parsed = TaskBackup.tasksFromJson(json)
-        parsed.tasks.forEach { task ->
-            scheduler.cancel(task.id)
-            dao.upsert(task)
-        }
+        // Se cancelan las alarmas antes de reemplazar, y el lote entra en
+        // una sola transacción (upsertAll) en vez de una por tarea.
+        parsed.tasks.forEach { task -> scheduler.cancel(task.id) }
+        dao.upsertAll(parsed.tasks)
         pruneExpiredReminders()
         rescheduleAll()
         return ImportResult(parsed.tasks.size, parsed.skipped)

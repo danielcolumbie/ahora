@@ -34,6 +34,12 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.6.0 (2026-09-29) — optimización interna (ETAPA 7)
+- **Menos memoria**: saber si hay recordatorios pendientes ahora es una consulta `EXISTS` (un booleano) en vez de cargar todas las tareas en memoria solo para ver si la lista está vacía.
+- **Menos batería en la importación**: el respaldo entra a la base de datos en una sola transacción (lote), no con una transacción por tarea.
+- **Menos objetos en la UI**: la lista de tareas reutiliza el programador de alarmas único de la app en vez de construir uno nuevo (con su `getSystemService`) en cada confirmación de recordatorio.
+- Verificado: sin trabajo periódico oculto, sin servicios permanentes, sin polling; la reconciliación de alarmas sigue siendo solo al arrancar y ante eventos del sistema. Sin cambios visibles.
+- 1 prueba nueva (59 JVM en total, todas verdes): la importación usa un solo lote.
 ### 1.5.0 (2026-09-29) — fluidez de la interfaz (ETAPA 6)
 - **Animaciones centralizadas** en `ui/theme/Motion.kt`: duraciones, retardos escalonados y springs en un solo lugar. Sin cambios visibles — la app se ve y se siente igual, pero el código de movimiento ya no está repetido en cinco archivos.
 - **Menos recomposiciones en la lista**: `TaskRow` ahora recibe callbacks estables `(Task) -> Unit` (una sola instancia para todas las filas en vez de una lambda nueva por fila), así Compose salta las filas que no cambiaron.
