@@ -82,6 +82,21 @@ fun TasksColumn(
     // así la posición del scroll sobrevive a los cambios de la UI.
     val listState = rememberLazyListState()
 
+    // Instancias estables para todas las filas (bloque K, rendimiento):
+    // sin lambdas recreadas por ítem en cada recomposición. `editingTask`
+    // y `reminderTask` se leen/escriben vía su holder de estado, así que
+    // la instancia no cambia cuando el diálogo se abre o se cierra y las
+    // filas que no cambiaron pueden saltar la recomposición.
+    val onEdit: (Task) -> Unit = remember(onEditRequest) {
+        { task -> onEditRequest?.invoke(task) ?: run { editingTask = task } }
+    }
+    val onToggleReminder: (Task) -> Unit = remember(onClearReminder) {
+        { task ->
+            if (task.reminderAt == null) reminderTask = task
+            else onClearReminder(task)
+        }
+    }
+
     // Tocar la pestaña activa sube la lista visible al inicio (bloque H):
     // desplazamiento suave, sin tocar el estado restaurado de la otra
     // pantalla (cada TasksColumn tiene su propio listState y solo la
@@ -123,11 +138,8 @@ fun TasksColumn(
                     onDelete = onDelete,
                     // Dos paneles (bloque J): editar selecciona la tarea
                     // para el panel de detalle en vez de abrir el diálogo.
-                    onEdit = { onEditRequest?.invoke(it) ?: run { editingTask = it } },
-                    onToggleReminder = { t ->
-                        if (t.reminderAt == null) reminderTask = t
-                        else onClearReminder(t)
-                    }
+                    onEdit = onEdit,
+                    onToggleReminder = onToggleReminder
                 )
             }
             if (index < tasks.lastIndex) {

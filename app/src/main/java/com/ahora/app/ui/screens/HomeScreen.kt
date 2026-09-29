@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
+import com.ahora.app.data.Task
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
@@ -231,6 +232,19 @@ fun HomeScreen(viewModel: MainViewModel) {
                     tasks.none { it.id == selectedTaskId }
                 ) {
                     selectedTaskId = null
+                }
+            }
+            // Instancias estables (bloque K, rendimiento): sin esto, cada
+            // recomposición de la pantalla (p. ej. cada tecla en la barra
+            // de creación) creaba lambdas nuevas que forzaban la
+            // recomposición de la lista, sus filas y el panel de detalle.
+            val onEditRequest: ((Task) -> Unit)? = remember(wide) {
+                if (wide) { { task -> selectedTaskId = task.id } } else null
+            }
+            val onDetailDelete: (Task) -> Unit = remember {
+                { task ->
+                    if (task.id == selectedTaskId) selectedTaskId = null
+                    viewModel.deleteTask(task)
                 }
             }
 
@@ -500,11 +514,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     // En dos paneles, editar selecciona la tarea
                                     // para el panel de detalle; en teléfonos se
                                     // conserva el diálogo (onEditRequest = null).
-                                    onEditRequest = if (wide) {
-                                        { task -> selectedTaskId = task.id }
-                                    } else {
-                                        null
-                                    }
+                                    onEditRequest = onEditRequest
                                 )
                             }
                         }
@@ -513,10 +523,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                         TaskDetailPanel(
                             task = tasks.firstOrNull { it.id == selectedTaskId },
                             onToggleDone = viewModel::toggleDone,
-                            onDelete = { task ->
-                                if (task.id == selectedTaskId) selectedTaskId = null
-                                viewModel.deleteTask(task)
-                            },
+                            onDelete = onDetailDelete,
                             onUpdateDetails = viewModel::updateDetails,
                             onSetReminder = viewModel::setReminder,
                             onClearReminder = viewModel::clearReminder,

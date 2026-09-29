@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ahora.app.data.Task
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.AdaptiveListDetail
@@ -85,6 +86,19 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     tasks.none { it.id == selectedTaskId }
                 ) {
                     selectedTaskId = null
+                }
+            }
+            // Instancias estables (bloque K, rendimiento): sin esto, cada
+            // recomposición de la pantalla (p. ej. cada tecla en la
+            // búsqueda) creaba lambdas nuevas que forzaban la recomposición
+            // de la lista, sus filas y el panel de detalle.
+            val onEditRequest: ((Task) -> Unit)? = remember(wide) {
+                if (wide) { { task -> selectedTaskId = task.id } } else null
+            }
+            val onDetailDelete: (Task) -> Unit = remember {
+                { task ->
+                    if (task.id == selectedTaskId) selectedTaskId = null
+                    viewModel.deleteTask(task)
                 }
             }
 
@@ -187,11 +201,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                                         alarmScheduler = viewModel.scheduler,
                                         scrollToTopEvents = viewModel.scrollToTopEvents,
                                         modifier = Modifier.weight(1f),
-                                        onEditRequest = if (wide) {
-                                            { task -> selectedTaskId = task.id }
-                                        } else {
-                                            null
-                                        }
+                                        onEditRequest = onEditRequest
                                     )
                                 }
                             }
@@ -201,10 +211,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                         TaskDetailPanel(
                             task = tasks.firstOrNull { it.id == selectedTaskId },
                             onToggleDone = viewModel::toggleDone,
-                            onDelete = { task ->
-                                if (task.id == selectedTaskId) selectedTaskId = null
-                                viewModel.deleteTask(task)
-                            },
+                            onDelete = onDetailDelete,
                             onUpdateDetails = viewModel::updateDetails,
                             onSetReminder = viewModel::setReminder,
                             onClearReminder = viewModel::clearReminder,

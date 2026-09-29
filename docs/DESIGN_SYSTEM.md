@@ -281,7 +281,12 @@ sistema (`Sizes`, `Spacing`).
 
 ## 11. Rendimiento (referencia: Galaxy A14, 4 GB)
 
-- Callbacks estables por fila (sin lambdas recreadas por ítem).
+- Callbacks estables por fila (sin lambdas recreadas por ítem): `TasksColumn`
+  eleva `onEdit`/`onToggleReminder` a instancias `remember` compartidas por
+  todas las filas, y las pantallas Hoy/Todas elevan `onEditRequest` (con
+  `remember(wide)`) y el `onDelete` del panel de detalle (bloque K, 1.24.0:
+  antes se creaban por fila o por recomposición y forzaban recomponer las
+  filas visibles al escribir en la barra o abrir diálogos).
 - `collectAsStateWithLifecycle` + `WhileSubscribed(5_000)`.
 - Sin polling: widget y UI reaccionan a cambios de la BD.
 - APK ~15 MB; sin dependencias visuales pesadas.
