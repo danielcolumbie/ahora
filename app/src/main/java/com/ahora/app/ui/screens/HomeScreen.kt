@@ -5,21 +5,27 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +42,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +65,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,66 +79,34 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
-import com.ahora.app.data.TaskPriority
-import com.ahora.app.data.TaskRecurrence
-import com.ahora.app.domain.parseNaturalLanguage
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
+import com.ahora.app.ui.components.AdvancedCreationDialog
 import com.ahora.app.ui.components.EmptyState
-import com.ahora.app.ui.components.TaskFormFields
 import com.ahora.app.ui.components.TasksColumn
-import com.ahora.app.ui.components.formatReminderLabel
-import com.ahora.app.ui.components.startOfLocalDateMillis
+import com.ahora.app.ui.components.rememberCreationDraft
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /** Pantalla principal: capturar en segundos y ver lo de hoy. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(viewModel: MainViewModel) {
     val tasks by viewModel.pendingTasks.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var input by rememberSaveable { mutableStateOf("") }
-    // Borrador de prioridad, fecha límite y recurrencia: solo visibles
-    // mientras se escribe, para que la captura siga siendo rápida
-    // (ETAPA 10 + ETAPA 11).
-    var draftPriority by rememberSaveable { mutableStateOf(TaskPriority.NONE) }
-    var draftDueAt by rememberSaveable { mutableStateOf<Long?>(null) }
-    var draftRecurrence by rememberSaveable { mutableStateOf(TaskRecurrence.NONE) }
-    // Recordatorio detectado por el lenguaje natural (ETAPA 13).
-    var draftReminderAt by rememberSaveable { mutableStateOf<Long?>(null) }
-    // Si el usuario toca un chip a mano, el parser deja de tocar ese
-    // campo: lo manual siempre gana. Se rearma al vaciar el texto.
-    var manualPriority by rememberSaveable { mutableStateOf(false) }
-    var manualDueAt by rememberSaveable { mutableStateOf(false) }
-    var manualRecurrence by rememberSaveable { mutableStateOf(false) }
-    var manualReminder by rememberSaveable { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-
     /**
-     * Lenguaje natural (ETAPA 13): cada cambio en el texto (escrito o
-     * dictado) se analiza y lo detectado alimenta los borradores, que
-     * se muestran en los chips bajo la barra: ese es el indicador de
-     * qué entendió la app. El parser es puro y barato: corre en el
-     * hilo de la UI sin despeinarse.
+     * Borrador de la creación (bloque C): un solo holder de estado con un
+     * único `rememberSaveable`, en vez de los 12 estados sueltos de antes.
+     * El texto escrito o dictado alimenta los campos vía lenguaje natural;
+     * lo que el usuario toca a mano en "Más opciones" siempre gana.
      */
-    fun applyInput(text: String) {
-        input = text
-        if (text.isBlank()) {
-            manualPriority = false
-            manualDueAt = false
-            manualRecurrence = false
-            manualReminder = false
-        }
-        val parsed = parseNaturalLanguage(text)
-        if (!manualPriority) draftPriority = parsed.priority
-        if (!manualDueAt) draftDueAt = parsed.dueDate?.let(::startOfLocalDateMillis)
-        if (!manualRecurrence) draftRecurrence = parsed.recurrence
-        if (!manualReminder) draftReminderAt = parsed.reminderAt
-    }
+    val draft = rememberCreationDraft()
+    var showAdvanced by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     val app = context.applicationContext as AhoraApplication
     val speech = remember { app.container.createSpeechInputManager(context) }
@@ -155,21 +130,17 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 
     fun submit() {
-        // El título guardado es el limpio: lo detectado ("mañana",
-        // "urgente"…) no queda pegado al nombre. Si el texto era solo
-        // lenguaje natural ("mañana"), se guarda tal cual se escribió.
-        val parsed = parseNaturalLanguage(input)
-        val title = parsed.title.ifBlank { input.trim() }
-        viewModel.addTask(title, draftPriority, draftDueAt, draftRecurrence, draftReminderAt)
-        input = ""
-        draftPriority = TaskPriority.NONE
-        draftDueAt = null
-        draftRecurrence = TaskRecurrence.NONE
-        draftReminderAt = null
-        manualPriority = false
-        manualDueAt = false
-        manualRecurrence = false
-        manualReminder = false
+        // El borrador devuelve el título limpio (sin lo detectado) y los
+        // valores, y se vacía: la lógica de guardado no cambió.
+        val values = draft.consumeForSave()
+        if (values.title.isBlank()) return
+        viewModel.addTask(
+            values.title,
+            values.priority,
+            values.dueAt,
+            values.recurrence,
+            values.reminderAt
+        )
     }
 
     fun onMicClick() {
@@ -194,7 +165,7 @@ fun HomeScreen(viewModel: MainViewModel) {
             is SpeechInputManager.State.Result -> {
                 // El texto dictado pasa por el mismo parser que el
                 // escrito: el lenguaje natural también funciona por voz.
-                applyInput(s.text)
+                draft.applyText(s.text)
                 speech.consumeResult()
             }
             is SpeechInputManager.State.Error -> {
@@ -284,8 +255,8 @@ fun HomeScreen(viewModel: MainViewModel) {
             // Barra de captura: escribir, dictar o enviar desde un solo lugar.
             // Sin bordes: la superficie la distingue del fondo con calma.
             TextField(
-                value = input,
-                onValueChange = { applyInput(it) },
+                value = draft.text,
+                onValueChange = { draft.applyText(it) },
                 placeholder = { Text("¿Qué tienes en mente?") },
                 singleLine = true,
                 shape = RoundedCornerShape(Spacing.l),
@@ -329,7 +300,22 @@ fun HomeScreen(viewModel: MainViewModel) {
                             }
                         }
                         AnimatedVisibility(
-                            visible = input.isNotBlank(),
+                            visible = draft.text.isNotBlank(),
+                            enter = scaleIn(animationSpec = Motion.checkSpring()) + fadeIn(),
+                            exit = scaleOut() + fadeOut()
+                        ) {
+                            IconButton(
+                                onClick = { showAdvanced = true }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Tune,
+                                    contentDescription = "Más opciones",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = draft.text.isNotBlank(),
                             enter = scaleIn(animationSpec = Motion.checkSpring()) + fadeIn(),
                             exit = scaleOut() + fadeOut()
                         ) {
@@ -361,60 +347,43 @@ fun HomeScreen(viewModel: MainViewModel) {
                 )
             }
 
-            // Campos de prioridad, fecha límite y recurrencia: aparecen solo
-            // mientras se escribe, para no entorpecer la captura rápida
-            // (ETAPA 10 + ETAPA 11). El lenguaje natural (ETAPA 13) los
-            // rellena solo; si el usuario toca un chip, su elección gana.
-            AnimatedVisibility(visible = input.isNotBlank()) {
+            // Chips de feedback del lenguaje natural (bloque C): muestran lo
+            // que la app entendió o lo que el usuario configuró. Entran con
+            // fundido + expansión suave: la barra ya no salta entre dos
+            // modos. Tocar un chip abre la configuración avanzada.
+            val feedbackChips = draft.feedbackChips()
+            AnimatedVisibility(
+                visible = feedbackChips.isNotEmpty(),
+                enter = fadeIn(animationSpec = tween(240, easing = FastOutSlowInEasing)) +
+                    expandVertically(animationSpec = tween(240, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(200)) +
+                    shrinkVertically(animationSpec = tween(200))
+            ) {
                 Column {
-                    Spacer(modifier = Modifier.height(Spacing.m))
-                    TaskFormFields(
-                        priority = draftPriority,
-                        onPriorityChange = {
-                            draftPriority = it
-                            manualPriority = true
-                        },
-                        dueAt = draftDueAt,
-                        onDueAtChange = {
-                            draftDueAt = it
-                            manualDueAt = true
-                        },
-                        recurrence = draftRecurrence,
-                        onRecurrenceChange = {
-                            draftRecurrence = it
-                            manualRecurrence = true
-                        }
-                    )
-                    // Recordatorio detectado ("a las 3pm"): indicador con
-                    // opción de quitarlo antes de guardar.
-                    val reminderAt = draftReminderAt
-                    if (reminderAt != null) {
-                        Spacer(modifier = Modifier.height(Spacing.s))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            Text(
-                                text = "Recordatorio: ${formatReminderLabel(reminderAt)}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Spacer(modifier = Modifier.height(Spacing.s))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        feedbackChips.forEach { label ->
+                            AssistChip(
+                                onClick = { showAdvanced = true },
+                                label = { Text(label) }
                             )
-                            IconButton(
-                                onClick = {
-                                    draftReminderAt = null
-                                    manualReminder = true
-                                },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = "Quitar recordatorio detectado",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
                     }
                 }
+            }
+
+            // Configuración avanzada (bloque C): prioridad, fecha límite,
+            // recordatorio y recurrencia en un diálogo dedicado, separado
+            // de la creación rápida. Edita el borrador; al enviar se aplica.
+            if (showAdvanced) {
+                AdvancedCreationDialog(
+                    draft = draft,
+                    onDismiss = { showAdvanced = false },
+                    onPastReminder = { showMessage("Esa hora ya pasó, elige una futura") }
+                )
             }
 
             Spacer(modifier = Modifier.height(Spacing.xxl))

@@ -69,8 +69,20 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   secundarios; el diseño futuro debe reducir su densidad.
 - **Pill (`MetaPill`):** forma totalmente redondeada, `surfaceVariant`,
   icono 12dp + `labelSmall`. Neutra salvo alta/vencida.
-- **Barra de creación rápida:** voz + campo + enviar en una línea; chips de
-  lo detectado debajo. Capturar en dos toques.
+- **Barra de creación rápida:** voz + campo + enviar en una línea, sin bordes
+  (la superficie la distingue del fondo). Mientras se escribe aparece el
+  icono de ajustes («Más opciones») junto al de enviar. Capturar en dos
+  toques.
+- **Creación rápida vs. configuración avanzada:** la barra nunca es un
+  formulario. Debajo, los **chips de feedback del lenguaje natural**
+  (`AssistChip` neutros) muestran lo entendido —«Se pondrá para Hoy · 15:00»,
+  «Vence: Mañana», «Alta», «Todos los días»— y abren el diálogo avanzado al
+  tocarlos. Las opciones (prioridad, fecha, recordatorio, recurrencia) viven
+  en el diálogo **«Opciones de la tarea»**, que reutiliza el componente
+  compartido `TaskFormFields`; «Cancelar» restaura el borrador como estaba.
+  El estado del borrador es un solo holder (`CreationDraftState`) con un
+  único `rememberSaveable` propio: sobrevive a rotación y a muerte del
+  proceso. Lo manual siempre gana sobre lo detectado.
 - **Estado vacío:** título `titleLarge` + subtítulo `bodyMedium` +
   botón primario. Entra con fundido suave.
 - **Etiqueta de sección con contador:** la etiqueta (`titleMedium` en
