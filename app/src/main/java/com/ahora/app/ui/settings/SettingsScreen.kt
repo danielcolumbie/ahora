@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,19 +43,61 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
 import com.ahora.app.notifications.NotificationHelper
+import kotlinx.coroutines.launch
 
-/** Ajustes mínimos: apariencia, notificaciones, acerca de y licencias. */
+/** Ajustes mínimos: apariencia, notificaciones, respaldo, acerca de y licencias. */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showAbout by remember { mutableStateOf(false) }
     var showLicenses by remember { mutableStateOf(false) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* el permiso se pide solo al activar; sin él, no hay avisos */ }
+
+    // Respaldo local: la app no usa la nube de Android; el usuario guarda
+    // y restaura su propio archivo JSON donde quiera (Storage Access
+    // Framework: no necesita permisos de almacenamiento).
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) scope.launch {
+            val result = runCatching {
+                val json = viewModel.exportBackup()
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(json.toByteArray(Charsets.UTF_8))
+                } ?: error("No se pudo abrir el archivo")
+            }
+            backupMessage = result.fold(
+                onSuccess = { "Respaldo guardado." },
+                onFailure = { e -> "No se pudo guardar: ${e.message}" }
+            )
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) scope.launch {
+            val result = runCatching {
+                val json = context.contentResolver.openInputStream(uri)?.use { input ->
+                    input.readBytes().toString(Charsets.UTF_8)
+                } ?: error("No se pudo leer el archivo")
+                viewModel.importBackup(json)
+            }
+            backupMessage = result.fold(
+                onSuccess = { r ->
+                    val skipped = if (r.skipped > 0) " (${r.skipped} omitidas)" else ""
+                    "Se importaron ${r.imported} tareas$skipped."
+                },
+                onFailure = { e -> "No se pudo importar: ${e.message}" }
+            )
+        }
+    }
 
     fun toggleNotifications(enabled: Boolean) {
         viewModel.setNotificationsEnabled(enabled)
@@ -126,6 +169,20 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text(text = "Respaldo", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingLinkRow(
+            title = "Exportar tareas",
+            subtitle = "Guarda un respaldo en un archivo",
+            onClick = { exportLauncher.launch("ahora-respaldo.json") }
+        )
+        SettingLinkRow(
+            title = "Importar tareas",
+            subtitle = "Restaura desde un archivo de respaldo",
+            onClick = { importLauncher.launch(arrayOf("application/json")) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         TextButton(onClick = { showAbout = true }) { Text("Acerca de Ahora") }
         TextButton(onClick = { showLicenses = true }) { Text("Licencias de código abierto") }
         Spacer(modifier = Modifier.height(24.dp))
@@ -136,7 +193,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             onDismissRequest = { showAbout = false },
             title = { Text("Ahora ${BuildConfig.VERSION_NAME}") },
             text = {
-                Text("Sácalo de tu cabeza.\n\nTus tareas viven solo en tu teléfono: sin cuentas, sin publicidad, sin analítica y sin servidores.")
+                Text("Sácalo de tu cabeza.\n\nTus tareas viven solo en tu teléfono: sin cuentas, sin publicidad, sin analítica, sin servidores y sin respaldo en la nube. Si quieres conservarlas, guarda tu propio respaldo en Ajustes → Respaldo.")
             },
             confirmButton = {
                 TextButton(onClick = { showAbout = false }) { Text("Cerrar") }
@@ -162,6 +219,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             },
             confirmButton = {
                 TextButton(onClick = { showLicenses = false }) { Text("Cerrar") }
+            }
+        )
+    }
+
+    if (backupMessage != null) {
+        AlertDialog(
+            onDismissRequest = { backupMessage = null },
+            text = { Text(backupMessage!!) },
+            confirmButton = {
+                TextButton(onClick = { backupMessage = null }) { Text("Cerrar") }
             }
         )
     }

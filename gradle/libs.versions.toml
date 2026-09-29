@@ -11,6 +11,7 @@ navigationCompose = "2.7.7"
 room = "2.6.1"
 datastore = "1.1.1"
 coroutinesTest = "1.7.3"
+orgJson = "20240303"
 composeBom = "2024.06.00"
 composeIcons = "1.7.0"
 
@@ -35,6 +36,7 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testExtJunit" }
 
 [plugins]

@@ -21,7 +21,7 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 5. Widget para la pantalla de inicio.
 6. Subtareas dentro de una tarea.
 7. Estadísticas simples (completadas por semana, racha).
-8. Exportar/importar respaldo (JSON) — la BD Room ya lo permite.
+8. ~~Exportar/importar respaldo (JSON)~~ ✅ hecho en 1.4.0 (ETAPA 5).
 9. Compartir tarea como texto.
 10. Acceso directo (tile) de "nueva tarea por voz".
 11. Recordatorios recurrentes (diario/semanal).
@@ -34,6 +34,11 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.4.0 (2026-09-29) — privacidad y respaldo (ETAPA 5)
+- **Respaldo en la nube de Android desactivado** (`allowBackup=false` + reglas de extracción vacías): nada sale del teléfono, ni a la nube ni en transferencia entre dispositivos. La afirmación "tus tareas viven solo en tu teléfono" ahora es 100% cierta.
+- **Nuevo: Exportar/Importar en Ajustes → Respaldo.** Guarda tus tareas en un archivo JSON donde tú elijas y restáuralas cuando quieras (p. ej. tras reinstalar). La importación es idempotente (no duplica) y reprograma los recordatorios automáticamente.
+- Textos de privacidad honestos en "Acerca de Ahora".
+- 12 pruebas nuevas (53 JVM en total, todas verdes): serialización del respaldo (9) e importación en el repositorio (3).
 ### 1.3.0 (2026-09-29) — recordatorios a prueba de balas (ETAPA 4)
 - Los recordatorios se reconcilian con la BD en más casos: además del reinicio, también al cambiar la hora o la zona horaria y al actualizar la app (`BootReceiver` ahora escucha `TIME_SET`, `TIMEZONE_CHANGED` y `MY_PACKAGE_REPLACED`).
 - Al abrir la app se verifica en frío que ninguna alarma se haya perdido: se reprograman las futuras (idempotente) y se limpian los recordatorios vencidos para que el pill no muestre horas del pasado. Sin polling ni servicios permanentes.

@@ -1,6 +1,7 @@
 package com.ahora.app.domain
 
 import com.ahora.app.data.Task
+import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +52,8 @@ class TaskRepositoryTest {
 
         override suspend fun getById(id: Long): Task? =
             tasks.value.firstOrNull { it.id == id }
+
+        override suspend fun getAll(): List<Task> = tasks.value
 
         // Nota: el repositorio llama a getPendingReminders() con el default de
         // la interfaz (System.currentTimeMillis()). El falso congela el tiempo
@@ -302,5 +305,59 @@ class TaskRepositoryTest {
         dao.upsert(task.copy(reminderAt = NOW - HOUR))
         repo.pruneExpiredReminders()
         assertFalse(repo.hasFutureReminders())
+    }
+
+    @Test
+    fun `importTasks restaura tareas y reprograma recordatorios futuros`() = runTest {
+        val json = TaskBackup.tasksToJson(
+            listOf(
+                Task(id = 10, title = "futura", createdAt = NOW, reminderAt = NOW + HOUR),
+                Task(id = 11, title = "vencida", createdAt = NOW, reminderAt = NOW - HOUR),
+                Task(id = 12, title = "sin recordatorio", createdAt = NOW)
+            ),
+            exportedAt = NOW
+        )
+
+        val result = repo.importTasks(json)
+
+        assertEquals(3, result.imported)
+        assertEquals(0, result.skipped)
+        assertEquals("futura", dao.getById(10)?.title)
+        // La vencida se limpia al importar; la futura se reprograma.
+        assertNull(dao.getById(11)?.reminderAt)
+        assertTrue(scheduler.scheduled.any { it.taskId == 10L && it.atMillis == NOW + HOUR })
+        assertFalse(scheduler.scheduled.any { it.taskId == 11L })
+    }
+
+    @Test
+    fun `importTasks es idempotente y cuenta las omitidas`() = runTest {
+        val json = """{"format":"ahora-backup","version":1,"exportedAt":1,"tasks":[
+            {"id":20,"title":"una","createdAt":1000,"isDone":false},
+            {"id":21,"title":"   ","createdAt":1000,"isDone":false}
+        ]}"""
+
+        val first = repo.importTasks(json)
+        val second = repo.importTasks(json)
+
+        assertEquals(1, first.imported)
+        assertEquals(1, first.skipped)
+        assertEquals(1, second.imported)
+        // Sin duplicados: el id se conserva y el upsert reemplaza.
+        assertEquals(1, dao.getAll().size)
+        assertEquals("una", dao.getById(20)?.title)
+    }
+
+    @Test
+    fun `exportTasks produce un respaldo que importTasks entiende`() = runTest {
+        addTask("una").copy(reminderAt = NOW + HOUR).let { dao.upsert(it) }
+        addTask("dos").let { dao.upsert(it) }
+
+        val json = repo.exportTasks()
+        // Vacía la BD simulando una reinstalación y restaura.
+        dao.getAll().forEach { dao.deleteById(it.id) }
+        val result = repo.importTasks(json)
+
+        assertEquals(2, result.imported)
+        assertEquals(2, dao.getAll().size)
     }
 }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.ahora.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 6
+        versionName = "1.4.0"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -99,6 +99,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    // org.json viene en Android; en JVM (tests) se usa el artefacto real.
+    testImplementation(libs.org.json)
 
     // Solo para el scaffold de tests de migración (instrumentation).
     androidTestImplementation(libs.androidx.room.testing)

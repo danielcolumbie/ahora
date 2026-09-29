@@ -1,6 +1,7 @@
 package com.ahora.app.domain
 
 import com.ahora.app.data.Task
+import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -103,4 +104,31 @@ class TaskRepository(
      */
     suspend fun hasFutureReminders(): Boolean =
         dao.getPendingReminders(clock()).isNotEmpty()
+
+    /** Resultado de importar un respaldo: cuántas entraron y cuántas se omitieron. */
+    data class ImportResult(val imported: Int, val skipped: Int)
+
+    /**
+     * Exporta todas las tareas a JSON. La app no usa el respaldo en la nube
+     * de Android: este archivo es el respaldo del usuario, bajo su control.
+     */
+    suspend fun exportTasks(): String =
+        TaskBackup.tasksToJson(dao.getAll(), clock())
+
+    /**
+     * Importa tareas desde un respaldo JSON. Es idempotente: conserva los
+     * ids, así que importar dos veces no duplica (REPLACE). Al final limpia
+     * recordatorios vencidos y reprograma las alarmas con la reconciliación
+     * existente: tras reinstalar e importar, todo vuelve a sonar.
+     */
+    suspend fun importTasks(json: String): ImportResult {
+        val parsed = TaskBackup.tasksFromJson(json)
+        parsed.tasks.forEach { task ->
+            scheduler.cancel(task.id)
+            dao.upsert(task)
+        }
+        pruneExpiredReminders()
+        rescheduleAll()
+        return ImportResult(parsed.tasks.size, parsed.skipped)
+    }
 }

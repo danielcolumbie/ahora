@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
-    <cloud-backup>
-        <include domain="database" path="." />
-        <include domain="file" path="datastore/" />
-    </cloud-backup>
-    <device-transfer>
-        <include domain="database" path="." />
-        <include domain="file" path="datastore/" />
-    </device-transfer>
+    <!-- Nada sale del teléfono: ni respaldo en la nube de Android ni
+         transferencia entre dispositivos. El respaldo es manual y local:
+         Ajustes → Respaldo (el usuario guarda su propio archivo JSON).
+         Elementos vacíos = no se incluye nada. -->
+    <cloud-backup />
+    <device-transfer />
 </data-extraction-rules>

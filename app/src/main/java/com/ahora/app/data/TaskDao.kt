@@ -24,6 +24,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getById(id: Long): Task?
 
+    /** Todas las tareas, para el respaldo local (Ajustes → Respaldo). */
+    @Query("SELECT * FROM tasks")
+    suspend fun getAll(): List<Task>
+
     @Query("SELECT * FROM tasks WHERE reminderAt IS NOT NULL AND isDone = 0 AND reminderAt > :now")
     suspend fun getPendingReminders(now: Long = System.currentTimeMillis()): List<Task>
 
