@@ -129,6 +129,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     onClearReminder = viewModel::clearReminder,
                     onPastReminder = viewModel::pastReminderSelected,
                     alarmScheduler = viewModel.scheduler,
+                    scrollToTopEvents = viewModel.scrollToTopEvents,
                     modifier = Modifier.weight(1f)
                 )
             }

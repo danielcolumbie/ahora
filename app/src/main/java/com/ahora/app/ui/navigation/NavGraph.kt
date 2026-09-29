@@ -68,7 +68,10 @@ private val destinations = listOf(
  * (`onSurface`/`onSurfaceVariant`): el color solo comunica la selección.
  * `singleTop` + `saveState`/`restoreState` conservan el scroll y el estado
  * de cada pestaña al volver. Las transiciones salen del objeto `Motion`
- * centralizado (FASE 13: sin valores sueltos).
+ * centralizado (FASE 13: sin valores sueltos). Tocar la pestaña ya activa
+ * sube la lista visible al inicio con desplazamiento suave (bloque H): la
+ * barra no conoce el scroll de cada pantalla, así que lo pide por un flujo
+ * del [MainViewModel] que cada pantalla recolecta.
  */
 @Composable
 fun NavGraph(
@@ -99,6 +102,13 @@ fun NavGraph(
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
+                            if (selected) {
+                                // Tocar la pestaña activa sube la lista al
+                                // inicio con desplazamiento suave (bloque H):
+                                // no se navega a ningún lado.
+                                mainViewModel.requestScrollToTop()
+                                return@NavigationBarItem
+                            }
                             navController.navigate(dest.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
@@ -148,7 +158,7 @@ fun NavGraph(
                 exitTransition = { Motion.screenExit() },
                 popEnterTransition = { Motion.screenEnter(reverse = true) },
                 popExitTransition = { Motion.screenExit(reverse = true) }
-            ) { SettingsScreen(settingsViewModel) }
+            ) { SettingsScreen(settingsViewModel, mainViewModel.scrollToTopEvents) }
         }
     }
 }

@@ -75,7 +75,7 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
 - **Fila de tarea:** sin tarjeta; checkbox circular + título (`bodyLarge`) +
   pills de metadatos + divisor `outlineVariant`. Altura mínima 48dp
   garantizada (`heightIn`, no depende del contenido). Al completar: tachado
-  + opacidad 0.55 animada + tick háptico sutil (el sistema decide si vibra).
+  + opacidad 0.55 animada + `Haptics.tick()` (el sistema decide si vibra).
   Acciones (recordatorio, eliminar) en un solo menú de opciones (⋮) por
   fila: menos densidad, misma funcionalidad (Deshacer y diálogo de
   recordatorio intactos).
@@ -138,10 +138,12 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   `saveState`/`restoreState` conservan el scroll y el estado de cada pestaña;
   transiciones desde `Motion` (entrada 280ms / salida 240ms).
 
-## 6. Movimiento (`Motion`)
+## 6. Movimiento (`Motion`) y hápticos (`Haptics`)
 
 Duraciones: entrada de fila 280ms, entrada de pantalla 280ms, salida 240ms,
-stagger 45ms por ítem (tope 360ms), pulso de micrófono 1600ms.
+stagger 45ms por ítem (tope 360ms), pulso de micrófono 1600ms, entrada de
+estado vacío 350ms, expansión suave 240ms, salidas cortas 200ms, entrada de
+diálogo 200ms.
 
 Reglas:
 - Easing `FastOutSlowIn` para transiciones; springs solo donde el gesto lo
@@ -149,7 +151,35 @@ Reglas:
 - **Prohibidos los rebotes exagerados.** El círculo de completado usa un
   spring suave (`dampingRatio = 0.8`), sin overshoot visible.
 - Listas: `key(id)` estable, `animateItemPlacement`, entrada escalonada solo
-  la primera vez.
+  la primera vez. Al salir de la lista (eliminar, o completar en «Hoy»), la
+  fila se desvanece y se colapsa en 200ms (`Motion.softExit()`): discreta,
+  sin pedir atención.
+- Diálogos (crear/editar/recordatorio): entran con fundido + escala sutil
+  0.97→1 en 200ms (`Motion.dialogEnter()`); al cerrar desaparecen al
+  instante — salir es la acción y debe sentirse inmediata.
+- Los chips de feedback del lenguaje natural entran con
+  `Motion.softExpand()` (240ms) y se recogen con `Motion.softExit()`
+  (200ms): la barra ya no salta entre dos modos.
+- Tocar la pestaña ya activa sube la lista visible al inicio con
+  desplazamiento suave: la barra pide el scroll por un flujo del
+  `MainViewModel` (`scrollToTopEvents`) que cada pantalla recolecta; no se
+  toca el estado restaurado de las demás pestañas.
+- Cero valores sueltos: toda duración/easing nuevo vive en `Motion`
+  (fijado por `MotionTest`).
+
+Hápticos (FASE 9): el objeto `Haptics` centraliza el único patrón —
+`Haptics.tick()`, un tick corto y ligero. Revisión holística del bloque H:
+en este BOM de Compose (2024.06) solo existen `LongPress` (largo y fuerte,
+no sirve para confirmaciones rápidas) y `TextHandleMove` (el tick sutil
+correcto); `ClockTick` no existe aquí. `performHapticFeedback` no vibra si
+el usuario desactivó la respuesta háptica a nivel de sistema: no hace falta
+comprobar nada a mano. Se usa SOLO como confirmación: marcar/desmarcar,
+enviar desde la creación rápida, guardar edición y guardar recordatorio.
+Deliberadamente SIN háptico: eliminar (la confirmación es el snackbar con
+Deshacer), deshacer, quitar recordatorio, elegir chips de
+prioridad/fecha/recurrencia, cambio de tema (el cambio visual ya confirma),
+navegación entre pestañas (M3 no vibra) y pulsar el micrófono (ya tiene el
+pulso animado).
 
 ## 7. Iconografía
 

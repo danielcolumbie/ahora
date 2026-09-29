@@ -5,19 +5,15 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -74,6 +70,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -86,6 +83,7 @@ import com.ahora.app.ui.components.AdvancedCreationDialog
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TasksColumn
 import com.ahora.app.ui.components.rememberCreationDraft
+import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -107,6 +105,7 @@ fun HomeScreen(viewModel: MainViewModel) {
     val draft = rememberCreationDraft()
     var showAdvanced by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val haptics = LocalHapticFeedback.current
 
     val app = context.applicationContext as AhoraApplication
     val speech = remember { app.container.createSpeechInputManager(context) }
@@ -134,6 +133,8 @@ fun HomeScreen(viewModel: MainViewModel) {
         // valores, y se vacía: la lógica de guardado no cambió.
         val values = draft.consumeForSave()
         if (values.title.isBlank()) return
+        // Tick de confirmación: la tarea quedó guardada (bloque H).
+        Haptics.tick(haptics)
         viewModel.addTask(
             values.title,
             values.priority,
@@ -354,10 +355,8 @@ fun HomeScreen(viewModel: MainViewModel) {
             val feedbackChips = draft.feedbackChips()
             AnimatedVisibility(
                 visible = feedbackChips.isNotEmpty(),
-                enter = fadeIn(animationSpec = tween(240, easing = FastOutSlowInEasing)) +
-                    expandVertically(animationSpec = tween(240, easing = FastOutSlowInEasing)),
-                exit = fadeOut(animationSpec = tween(200)) +
-                    shrinkVertically(animationSpec = tween(200))
+                enter = Motion.softExpand(),
+                exit = Motion.softExit()
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(Spacing.s))
@@ -379,11 +378,18 @@ fun HomeScreen(viewModel: MainViewModel) {
             // recordatorio y recurrencia en un diálogo dedicado, separado
             // de la creación rápida. Edita el borrador; al enviar se aplica.
             if (showAdvanced) {
-                AdvancedCreationDialog(
-                    draft = draft,
-                    onDismiss = { showAdvanced = false },
-                    onPastReminder = { showMessage("Esa hora ya pasó, elige una futura") }
-                )
+                // El diálogo entra con fundido + escala sutil (bloque H);
+                // al cerrar desaparece al instante.
+                AnimatedVisibility(
+                    visible = true,
+                    enter = Motion.dialogEnter()
+                ) {
+                    AdvancedCreationDialog(
+                        draft = draft,
+                        onDismiss = { showAdvanced = false },
+                        onPastReminder = { showMessage("Esa hora ya pasó, elige una futura") }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.xxl))
@@ -430,6 +436,7 @@ color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
                     onClearReminder = viewModel::clearReminder,
                     onPastReminder = viewModel::pastReminderSelected,
                     alarmScheduler = viewModel.scheduler,
+                    scrollToTopEvents = viewModel.scrollToTopEvents,
                     modifier = Modifier.weight(1f)
                 )
             }

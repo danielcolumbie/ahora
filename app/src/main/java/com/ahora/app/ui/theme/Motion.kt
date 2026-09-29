@@ -12,6 +12,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -60,12 +62,68 @@ object Motion {
             )
         )
 
+    /** Duración de la entrada suave del estado vacío. */
+    const val SOFT_ENTER_MILLIS = 350
+
     /** Entrada suave del estado vacío. */
-    fun softEnter(): EnterTransition {
-        val duration = 350
-        return fadeIn(animationSpec = tween(durationMillis = duration)) +
-            slideInVertically(animationSpec = tween(durationMillis = duration)) { it / 8 }
-    }
+    fun softEnter(): EnterTransition =
+        fadeIn(animationSpec = tween(durationMillis = SOFT_ENTER_MILLIS)) +
+            slideInVertically(animationSpec = tween(durationMillis = SOFT_ENTER_MILLIS)) { it / 8 }
+
+    /**
+     * Duración de las expansiones suaves (chips de feedback del lenguaje
+     * natural en la barra de creación). Bloque H: antes un `tween(240)`
+     * suelto en HomeScreen; ahora centralizado.
+     */
+    const val SOFT_EXPAND_MILLIS = 240
+
+    /**
+     * Duración de las salidas cortas: la fila que se elimina se desvanece
+     * y se colapsa, y los chips de feedback se recogen al vaciar el
+     * campo. Rápida y discreta: nadie espera a que una fila termine de
+     * desaparecer.
+     */
+    const val QUICK_EXIT_MILLIS = 200
+
+    /**
+     * Expansión suave: fundido + crecimiento vertical, sin rebote.
+     * Se usa para los chips de feedback bajo la barra de creación.
+     */
+    fun softExpand(): EnterTransition =
+        fadeIn(
+            animationSpec = tween(SOFT_EXPAND_MILLIS, easing = FastOutSlowInEasing)
+        ) + expandVertically(
+            animationSpec = tween(SOFT_EXPAND_MILLIS, easing = FastOutSlowInEasing)
+        )
+
+    /**
+     * Salida corta: fundido + colapso vertical. Se usa cuando una fila
+     * sale de la lista (eliminar, o completar en «Hoy») y cuando los
+     * chips de feedback desaparecen.
+     */
+    fun softExit(): ExitTransition =
+        fadeOut(
+            animationSpec = tween(QUICK_EXIT_MILLIS, easing = FastOutSlowInEasing)
+        ) + shrinkVertically(
+            animationSpec = tween(QUICK_EXIT_MILLIS, easing = FastOutSlowInEasing)
+        )
+
+    /** Duración de la entrada de los diálogos (crear/editar/recordatorio). */
+    const val DIALOG_ENTER_MILLIS = 200
+
+    /**
+     * Entrada de los diálogos: fundido + escala sutil (0.97 → 1), sin
+     * rebote. El diálogo aparece con presencia pero sin llamar la
+     * atención; al cerrar desaparece al instante (salir es la acción,
+     * y debe sentirse inmediata).
+     */
+    fun dialogEnter(): EnterTransition =
+        fadeIn(
+            animationSpec = tween(DIALOG_ENTER_MILLIS, easing = FastOutSlowInEasing)
+        ) + scaleIn(
+            animationSpec = tween(DIALOG_ENTER_MILLIS, easing = FastOutSlowInEasing),
+            initialScale = 0.97f
+        )
 
     /**
      * Spring del círculo de completado al marcar/desmarcar: suave, sin

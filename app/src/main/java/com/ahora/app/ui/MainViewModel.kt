@@ -94,6 +94,18 @@ class MainViewModel(
     val events: SharedFlow<UiEvent> = _events.asSharedFlow()
 
     /**
+     * Tocar la pestaña ya activa en la barra de navegación sube la lista
+     * visible al inicio (bloque H). Evento de una sola vez, con buffer de
+     * 1 como [events]: emitir nunca suspende.
+     */
+    private val _scrollToTopEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val scrollToTopEvents: SharedFlow<Unit> = _scrollToTopEvents.asSharedFlow()
+
+    fun requestScrollToTop() {
+        _scrollToTopEvents.tryEmit(Unit)
+    }
+
+    /**
      * Aviso puntual si el sistema revocó el permiso de alarmas exactas
      * (Android 12+): sin él, los recordatorios pueden llegar tarde.
      * No insistente: se descarta y no vuelve hasta que el permiso se

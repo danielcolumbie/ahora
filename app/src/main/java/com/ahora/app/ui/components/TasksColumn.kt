@@ -24,15 +24,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.notifications.AlarmScheduler
+import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
 
 /**
  * Lista de tareas con los diálogos de editar y de recordatorio integrados.
@@ -43,7 +48,14 @@ import com.ahora.app.ui.theme.Spacing
  * `getSystemService`) en cada confirmación de recordatorio.
  *
  * Las filas se reordenan con suavidad (animateItemPlacement) y, solo la primera vez
- * que se muestra la lista, entran de forma escalonada.
+ * que se muestra la lista, entran de forma escalonada. Cuando una fila sale
+ * de la lista (eliminar, o completar en «Hoy») se desvanece y se colapsa
+ * con [Motion.softExit]: discreta, sin pedir atención.
+ *
+ * [scrollToTopEvents]: al tocar la pestaña ya activa en la barra de
+ * navegación, la lista visible sube al inicio con desplazamiento suave
+ * (bloque H). La barra no conoce el scroll de cada pantalla; este flujo,
+ * emitido por el ViewModel, lo conecta sin romper el estado restaurado.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -56,6 +68,7 @@ fun TasksColumn(
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
     alarmScheduler: AlarmScheduler,
+    scrollToTopEvents: SharedFlow<Unit>,
     modifier: Modifier = Modifier
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
@@ -63,6 +76,8 @@ fun TasksColumn(
     var pendingReminder by remember { mutableStateOf<Pair<Task, Long>?>(null) }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    val listScope = rememberCoroutineScope()
 
     // El permiso de notificaciones se pide justo al guardar un recordatorio:
     // sin él, el aviso nunca llegaría a la barra de estado.
@@ -97,6 +112,16 @@ fun TasksColumn(
     // así la posición del scroll sobrevive a los cambios de la UI.
     val listState = rememberLazyListState()
 
+    // Tocar la pestaña activa sube la lista visible al inicio (bloque H):
+    // desplazamiento suave, sin tocar el estado restaurado de la otra
+    // pantalla (cada TasksColumn tiene su propio listState y solo la
+    // visible está compuesta).
+    LaunchedEffect(scrollToTopEvents) {
+        scrollToTopEvents.collect {
+            listScope.launch { listState.animateScrollToItem(0) }
+        }
+    }
+
     LazyColumn(
         state = listState,
         // Sin tarjetas: las filas se separan con un divisor sutil.
@@ -112,6 +137,10 @@ fun TasksColumn(
             AnimatedVisibility(
                 visible = true,
                 enter = if (isNew) Motion.taskEnter(staggerDelay) else EnterTransition.None,
+                // Salida corta y discreta (bloque H): al eliminar o al
+                // completar en «Hoy», la fila se desvanece y se colapsa en
+                // 200ms en vez de desaparecer de golpe.
+                exit = Motion.softExit(),
                 // animateItemPlacement(): en foundation 1.6.8 aún no existe
                 // animateItem() (llegó en 1.7); esta es la API vigente aquí.
                 modifier = Modifier.animateItemPlacement()
@@ -136,66 +165,87 @@ fun TasksColumn(
     }
 
     editingTask?.let { task ->
-        EditTaskDialog(
-            initialText = task.title,
-            initialPriority = TaskPriority.fromLevel(task.priority),
-            initialDueAt = task.dueAt,
-            initialRecurrence = TaskRecurrence.fromCode(task.recurrence),
-            onDismiss = { editingTask = null },
-            onConfirm = { title, priority, dueAt, recurrence ->
-                onUpdateDetails(task, title, priority, dueAt, recurrence)
-                editingTask = null
-            }
-        )
+        AnimatedVisibility(
+            visible = true,
+            // Los diálogos entran con fundido + escala sutil (bloque H);
+            // al cerrar desaparecen al instante: salir es la acción.
+            enter = Motion.dialogEnter()
+        ) {
+            EditTaskDialog(
+                initialText = task.title,
+                initialPriority = TaskPriority.fromLevel(task.priority),
+                initialDueAt = task.dueAt,
+                initialRecurrence = TaskRecurrence.fromCode(task.recurrence),
+                onDismiss = { editingTask = null },
+                onConfirm = { title, priority, dueAt, recurrence ->
+                    // Tick de confirmación: el cambio quedó guardado.
+                    Haptics.tick(haptics)
+                    onUpdateDetails(task, title, priority, dueAt, recurrence)
+                    editingTask = null
+                }
+            )
+        }
     }
 
     reminderTask?.let { task ->
-        ReminderDialog(
-            onDismiss = { reminderTask = null },
-            onConfirm = { atMillis ->
-                if (!isFutureInstant(atMillis)) {
-                    // Fecha pasada: avisar con un mensaje claro en vez de
-                    // descartar la elección en silencio.
-                    onPastReminder()
-                    reminderTask = null
-                    return@ReminderDialog
+        AnimatedVisibility(
+            visible = true,
+            enter = Motion.dialogEnter()
+        ) {
+            ReminderDialog(
+                onDismiss = { reminderTask = null },
+                onConfirm = { atMillis ->
+                    if (!isFutureInstant(atMillis)) {
+                        // Fecha pasada: avisar con un mensaje claro en vez de
+                        // descartar la elección en silencio.
+                        onPastReminder()
+                        reminderTask = null
+                        return@ReminderDialog
+                    }
+                    val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.POST_NOTIFICATIONS
+                        ) != PackageManager.PERMISSION_GRANTED
+                    if (needsPermission) {
+                        // Se guarda al conceder el permiso; si lo niega, no hay aviso posible.
+                        pendingReminder = task to atMillis
+                        reminderTask = null
+                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        // Tick de confirmación: el recordatorio quedó activo.
+                        Haptics.tick(haptics)
+                        confirmReminder(task, atMillis)
+                    }
                 }
-                val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                if (needsPermission) {
-                    // Se guarda al conceder el permiso; si lo niega, no hay aviso posible.
-                    pendingReminder = task to atMillis
-                    reminderTask = null
-                    notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    confirmReminder(task, atMillis)
-                }
-            }
-        )
+            )
+        }
     }
 
     if (showExactAlarmDialog) {
-        AlertDialog(
-            onDismissRequest = { showExactAlarmDialog = false },
-            title = { Text("Aviso a la hora exacta") },
-            text = {
-                Text(
-                    "Para que el recordatorio suene justo a la hora que elegiste, " +
-                        "permite las alarmas exactas de Ahora en los ajustes del sistema."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExactAlarmDialog = false
-                    alarmScheduler.exactAlarmSettingsIntent()
-                        ?.let { context.startActivity(it) }
-                }) { Text("Ir a ajustes") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExactAlarmDialog = false }) { Text("Ahora no") }
-            }
-        )
+        AnimatedVisibility(
+            visible = true,
+            enter = Motion.dialogEnter()
+        ) {
+            AlertDialog(
+                onDismissRequest = { showExactAlarmDialog = false },
+                title = { Text("Aviso a la hora exacta") },
+                text = {
+                    Text(
+                        "Para que el recordatorio suene justo a la hora que elegiste, " +
+                            "permite las alarmas exactas de Ahora en los ajustes del sistema."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showExactAlarmDialog = false
+                        alarmScheduler.exactAlarmSettingsIntent()
+                            ?.let { context.startActivity(it) }
+                    }) { Text("Ir a ajustes") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showExactAlarmDialog = false }) { Text("Ahora no") }
+                }
+            )
+        }
     }
 }

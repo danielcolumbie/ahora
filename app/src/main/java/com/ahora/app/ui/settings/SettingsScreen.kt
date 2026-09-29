@@ -35,6 +35,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +54,7 @@ import com.ahora.app.ui.components.FormSection
 import com.ahora.app.ui.components.SettingLinkRow
 import com.ahora.app.ui.components.SettingSwitchRow
 import com.ahora.app.ui.theme.Spacing
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 /** Nombre por defecto del archivo de respaldo exportado. */
@@ -78,7 +80,11 @@ internal fun formatImportSuccess(imported: Int, skipped: Int): String {
  * del sistema en vez de un diálogo suelto.
  */
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    /** Tocar la pestaña «Ajustes» ya activa sube el scroll al inicio (bloque H). */
+    scrollToTopEvents: SharedFlow<Unit>
+) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -86,6 +92,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showAbout by remember { mutableStateOf(false) }
     var showLicenses by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val settingsScroll = rememberScrollState()
+
+    // Tocar la pestaña activa sube al inicio con desplazamiento suave
+    // (bloque H), igual que en las listas de Hoy y Todas.
+    LaunchedEffect(scrollToTopEvents) {
+        scrollToTopEvents.collect { settingsScroll.animateScrollTo(0) }
+    }
 
     // El "Reintentar" del Snackbar necesita el launcher ya creado, pero el
     // callback no puede referenciar su propio val: los holders se declaran
@@ -183,7 +196,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(settingsScroll)
                 .padding(horizontal = Spacing.screenHorizontal)
         ) {
             Spacer(modifier = Modifier.height(Spacing.xxl))

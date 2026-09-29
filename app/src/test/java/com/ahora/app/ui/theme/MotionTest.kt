@@ -41,4 +41,17 @@ class MotionTest {
         assertEquals(360, Motion.STAGGER_MAX_MILLIS)
         assertEquals(1600, Motion.PULSE_DURATION_MILLIS)
     }
+
+    @Test
+    fun `las constantes del bloque H tienen los valores acordados`() {
+        // Salidas cortas y discretas (eliminar fila, recoger chips): 200ms.
+        assertEquals(200, Motion.QUICK_EXIT_MILLIS)
+        // Expansión suave de los chips de feedback: 240ms.
+        assertEquals(240, Motion.SOFT_EXPAND_MILLIS)
+        // Entrada de diálogos: 200ms.
+        assertEquals(200, Motion.DIALOG_ENTER_MILLIS)
+        // Entrada suave del estado vacío: 350ms (antes un literal dentro
+        // de softEnter; el bloque H lo centralizó como constante).
+        assertEquals(350, Motion.SOFT_ENTER_MILLIS)
+    }
 }

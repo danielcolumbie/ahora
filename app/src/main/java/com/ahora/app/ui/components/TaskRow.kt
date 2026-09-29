@@ -54,13 +54,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
+import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
@@ -310,8 +310,8 @@ private fun RecurrencePill(recurrence: TaskRecurrence) {
  * Botón circular de completado, con semántica de checkbox para accesibilidad.
  * Al marcar/desmarcar, el círculo crece con un spring sutil (sin rebote) y
  * el check entra con escala; además se emite un tick háptico corto como
- * confirmación (FASE 7/9: sutil, solo cuando aporta; el sistema decide si
- * vibra según sus ajustes).
+ * confirmación ([Haptics.tick]: sutil, solo cuando aporta; el sistema
+ * decide si vibra según sus ajustes).
  * El acento aquí sí comunica: es el estado de la tarea.
  */
 @Composable
@@ -346,10 +346,10 @@ private fun CircularCheckButton(
                 value = checked,
                 role = Role.Checkbox,
                 onValueChange = {
-                    // Tick háptico corto como confirmación (FASE 7/9):
-                    // sutil, solo cuando aporta; el sistema decide si vibra
-                    // según sus ajustes.
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    // Tick háptico corto como confirmación (FASE 9): sutil,
+                    // solo cuando aporta; el sistema decide si vibra según
+                    // sus ajustes. Ver [Haptics] para la revisión holística.
+                    Haptics.tick(haptics)
                     onToggle()
                 }
             )
