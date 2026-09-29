@@ -57,6 +57,9 @@ class SpeechInputManager(private val context: Context) {
                         else -> "No pude entenderte. Inténtalo de nuevo o escribe la tarea."
                     }
                 )
+                // Estado terminal: liberar el servicio del sistema de inmediato,
+                // sin esperar al próximo uso ni a salir de la pantalla.
+                stopInternal()
             }
             override fun onResults(results: Bundle?) {
                 val text = results
@@ -68,6 +71,8 @@ class SpeechInputManager(private val context: Context) {
                 } else {
                     State.Result(text)
                 }
+                // Estado terminal: liberar el servicio del sistema de inmediato.
+                stopInternal()
             }
             override fun onPartialResults(partialResults: Bundle?) = Unit
             override fun onEvent(eventType: Int, params: Bundle?) = Unit

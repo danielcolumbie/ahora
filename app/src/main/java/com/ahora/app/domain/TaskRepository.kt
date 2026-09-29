@@ -29,7 +29,9 @@ class TaskRepository(
         val updated = if (task.isDone) {
             task.copy(isDone = false, doneAt = null)
         } else {
-            task.copy(isDone = true, doneAt = System.currentTimeMillis())
+            // Al completar se cancela la alarma y se limpia el recordatorio:
+            // si no, el pill quedaría obsoleto para siempre.
+            task.copy(isDone = true, doneAt = System.currentTimeMillis(), reminderAt = null)
         }
         dao.upsert(updated)
         if (updated.isDone) {
