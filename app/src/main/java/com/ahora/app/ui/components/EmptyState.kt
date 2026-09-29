@@ -1,9 +1,6 @@
 package com.ahora.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ahora.app.ui.theme.Motion
 
 /** Estado vacío con jerarquía tipográfica cuidada; entra con un fundido suave. */
 @Composable
@@ -36,8 +34,7 @@ fun EmptyState(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(350)) +
-            slideInVertically(animationSpec = tween(350)) { fullHeight -> fullHeight / 8 },
+        enter = Motion.softEnter(),
         modifier = modifier
     ) {
         Column(

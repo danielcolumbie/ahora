@@ -34,6 +34,11 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.5.0 (2026-09-29) — fluidez de la interfaz (ETAPA 6)
+- **Animaciones centralizadas** en `ui/theme/Motion.kt`: duraciones, retardos escalonados y springs en un solo lugar. Sin cambios visibles — la app se ve y se siente igual, pero el código de movimiento ya no está repetido en cinco archivos.
+- **Menos recomposiciones en la lista**: `TaskRow` ahora recibe callbacks estables `(Task) -> Unit` (una sola instancia para todas las filas en vez de una lambda nueva por fila), así Compose salta las filas que no cambiaron.
+- El estado del scroll (`rememberLazyListState`) ya no se recrea: la posición de la lista sobrevive a los cambios de la UI.
+- 5 pruebas nuevas (58 JVM en total, todas verdes) que fijan los valores de animación para que no cambien sin querer.
 ### 1.4.0 (2026-09-29) — privacidad y respaldo (ETAPA 5)
 - **Respaldo en la nube de Android desactivado** (`allowBackup=false` + reglas de extracción vacías): nada sale del teléfono, ni a la nube ni en transferencia entre dispositivos. La afirmación "tus tareas viven solo en tu teléfono" ahora es 100% cierta.
 - **Nuevo: Exportar/Importar en Ajustes → Respaldo.** Guarda tus tareas en un archivo JSON donde tú elijas y restáuralas cuando quieras (p. ej. tras reinstalar). La importación es idempotente (no duplica) y reprograma los recordatorios automáticamente.

@@ -4,13 +4,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -71,6 +69,7 @@ import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TasksColumn
+import com.ahora.app.ui.theme.Motion
 import kotlinx.coroutines.launch
 
 /** Pantalla principal: capturar en segundos y ver lo de hoy. */
@@ -316,7 +315,7 @@ private fun PulseRing(delayMillis: Int) {
         initialValue = 1f,
         targetValue = 1.55f,
         animationSpec = infiniteRepeatable<Float>(
-            animation = tween(1600, delayMillis = delayMillis, easing = LinearEasing),
+            animation = Motion.pulseSpec(delayMillis),
             repeatMode = RepeatMode.Restart
         ),
         label = "pulseScale"
@@ -325,7 +324,7 @@ private fun PulseRing(delayMillis: Int) {
         initialValue = 0.45f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable<Float>(
-            animation = tween(1600, delayMillis = delayMillis, easing = LinearEasing),
+            animation = Motion.pulseSpec(delayMillis),
             repeatMode = RepeatMode.Restart
         ),
         label = "pulseAlpha"

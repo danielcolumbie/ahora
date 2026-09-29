@@ -7,15 +7,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
 import com.ahora.app.notifications.ReminderScheduler
+import com.ahora.app.ui.theme.Motion
 
 /**
  * Lista de tareas con los diálogos de editar y de recordatorio integrados.
@@ -83,8 +81,12 @@ fun TasksColumn(
     // Cada tarea anima su entrada una sola vez: las iniciales de forma
     // escalonada y las que se añadan después, al aparecer.
     val shownIds = remember { mutableSetOf<Long>() }
+    // El estado de la lista vive aquí (no se recrea en cada recomposición),
+    // así la posición del scroll sobrevive a los cambios de la UI.
+    val listState = rememberLazyListState()
 
     LazyColumn(
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 4.dp),
         modifier = modifier
@@ -92,31 +94,25 @@ fun TasksColumn(
         itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
             val isNew = task.id !in shownIds
             LaunchedEffect(task.id) { shownIds += task.id }
-            val staggerDelay = if (isNew && shownIds.isEmpty()) {
-                // Primera muestra de la lista: entrada escalonada.
-                (index * 45).coerceAtMost(360)
-            } else 0
+            val staggerDelay =
+                Motion.staggerDelayMillis(index, isFirstShow = isNew && shownIds.isEmpty())
             AnimatedVisibility(
                 visible = true,
-                enter = if (isNew) {
-                    fadeIn(animationSpec = tween(280, delayMillis = staggerDelay)) +
-                        slideInVertically(
-                            animationSpec = tween(280, delayMillis = staggerDelay)
-                        ) { fullHeight -> fullHeight / 3 } +
-                        expandVertically(animationSpec = tween(280, delayMillis = staggerDelay))
-                } else {
-                    EnterTransition.None
-                },
+                enter = if (isNew) Motion.taskEnter(staggerDelay) else EnterTransition.None,
+                // animateItemPlacement(): en foundation 1.6.8 aún no existe
+                // animateItem() (llegó en 1.7); esta es la API vigente aquí.
                 modifier = Modifier.animateItemPlacement()
             ) {
                 TaskRow(
                     task = task,
-                    onToggleDone = { onToggleDone(task) },
-                    onDelete = { onDelete(task) },
-                    onEdit = { editingTask = task },
-                    onToggleReminder = {
-                        if (task.reminderAt == null) reminderTask = task
-                        else onClearReminder(task)
+                    // Se pasan las referencias estables: una sola instancia
+                    // para todas las filas, no una lambda nueva por fila.
+                    onToggleDone = onToggleDone,
+                    onDelete = onDelete,
+                    onEdit = { editingTask = it },
+                    onToggleReminder = { t ->
+                        if (t.reminderAt == null) reminderTask = t
+                        else onClearReminder(t)
                     }
                 )
             }

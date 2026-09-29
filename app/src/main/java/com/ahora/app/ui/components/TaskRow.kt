@@ -2,10 +2,8 @@ package com.ahora.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -46,15 +44,22 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
+import com.ahora.app.ui.theme.Motion
 
-/** Tarjeta de tarea: checkbox circular, texto, pill de recordatorio y acciones. */
+/**
+ * Tarjeta de tarea: checkbox circular, texto, pill de recordatorio y acciones.
+ *
+ * Los callbacks reciben la tarea en vez de lambdas `() -> Unit` creadas por
+ * fila: así son la misma instancia para todas las filas y Compose puede
+ * saltar la recomposición de las que no cambiaron.
+ */
 @Composable
 fun TaskRow(
     task: Task,
-    onToggleDone: () -> Unit,
-    onDelete: () -> Unit,
-    onEdit: () -> Unit,
-    onToggleReminder: () -> Unit,
+    onToggleDone: (Task) -> Unit,
+    onDelete: (Task) -> Unit,
+    onEdit: (Task) -> Unit,
+    onToggleReminder: (Task) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Al completar: el texto se tacha y baja la opacidad con animación, sin desaparecer de golpe.
@@ -82,12 +87,12 @@ fun TaskRow(
         ) {
             CircularCheckButton(
                 checked = task.isDone,
-                onToggle = onToggleDone
+                onToggle = { onToggleDone(task) }
             )
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onEdit)
+                    .clickable(onClick = { onEdit(task) })
                     .padding(horizontal = 8.dp)
             ) {
                 Text(text = task.title, style = textStyle)
@@ -96,13 +101,13 @@ fun TaskRow(
                     ReminderPill(label = formatReminderLabel(at))
                 }
             }
-            IconButton(onClick = onToggleReminder) {
+            IconButton(onClick = { onToggleReminder(task) }) {
                 Icon(
                     imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
                     contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio"
                 )
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { onDelete(task) }) {
                 Icon(
                     imageVector = Icons.Outlined.Delete,
                     contentDescription = "Eliminar tarea"
@@ -165,10 +170,7 @@ private fun CircularCheckButton(
     // Rebote sutil del círculo al cambiar de estado.
     val circleSize by animateDpAsState(
         targetValue = if (checked) 27.dp else 24.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = Motion.bouncySpring(),
         label = "checkCircleSize"
     )
     Box(
@@ -192,12 +194,7 @@ private fun CircularCheckButton(
         ) {
             AnimatedVisibility(
                 visible = checked,
-                enter = scaleIn(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeIn(),
+                enter = scaleIn(animationSpec = Motion.checkSpring()) + fadeIn(),
                 exit = scaleOut() + fadeOut()
             ) {
                 Icon(
