@@ -64,9 +64,12 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
 ## 5. Componentes
 
 - **Fila de tarea:** sin tarjeta; checkbox circular + título (`bodyLarge`) +
-  pills de metadatos + divisor `outlineVariant`. Al completar: tachado +
-  opacidad 0.55 animada. Acciones (recordatorio, eliminar) como iconos
-  secundarios; el diseño futuro debe reducir su densidad.
+  pills de metadatos + divisor `outlineVariant`. Altura mínima 48dp
+  garantizada (`heightIn`, no depende del contenido). Al completar: tachado
+  + opacidad 0.55 animada + tick háptico sutil (el sistema decide si vibra).
+  Acciones (recordatorio, eliminar) en un solo menú de opciones (⋮) por
+  fila: menos densidad, misma funcionalidad (Deshacer y diálogo de
+  recordatorio intactos).
 - **Pill (`MetaPill`):** forma totalmente redondeada, `surfaceVariant`,
   icono 12dp + `labelSmall`. Neutra salvo alta/vencida.
 - **Barra de creación rápida:** voz + campo + enviar en una línea, sin bordes
@@ -89,7 +92,15 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   mayúsculas) puede llevar un contador discreto a su derecha
   (`titleMedium`, `onSurfaceVariant` al 65%): informa la cantidad sin
   añadir ruido. Se usa en la sección «HOY» de la pantalla principal.
-- **Diálogos:** `TaskFormFields` compartido (crear = editar).
+- **Diálogos:** `TaskFormFields` compartido (crear = editar); secciones del
+  sistema con `Spacing.l` entre ellas («Prioridad», «Fecha límite»,
+  «Recurrencia»). El diálogo de recordatorio es una sola pantalla con el
+  mismo patrón: sección «Fecha» (atajos Hoy / Mañana / En 1 hora +
+  calendario) y sección «Hora» (entrada de tiempo en 24h).
+- **Sección de formulario (`FormSection`):** etiqueta `titleMedium` en
+  mayúsculas (`onSurfaceVariant`) + contenido, separados por `Spacing.s`.
+  La comparten el diálogo de edición, `TaskFormFields` y el diálogo de
+  recordatorio: una sola jerarquía en todos los diálogos.
 - **Ajustes:** secciones con `titleMedium` en mayúsculas; filas reutilizables
   (objetivo del rediseño: componente `SettingRow`).
 

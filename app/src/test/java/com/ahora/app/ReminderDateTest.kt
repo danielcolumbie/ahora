@@ -1,5 +1,6 @@
 package com.ahora.app
 
+import com.ahora.app.ui.components.reminderAtLocalDay
 import com.ahora.app.ui.components.reminderInstantMillis
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -81,5 +82,37 @@ class ReminderDateTest {
         val expected = ZonedDateTime.of(2026, 9, 30, 9, 30, 0, 0, tokyo)
             .toInstant().toEpochMilli()
         assertEquals(expected, at)
+    }
+
+    // --- reminderAtLocalDay (atajos Hoy/Mañana del diálogo de recordatorio) ---
+
+    /** "ahora" fijo: 29-sep-2026 10:00 en La Habana. */
+    private fun fixedNow(): Long =
+        ZonedDateTime.of(2026, 9, 29, 10, 0, 0, 0, havana).toInstant().toEpochMilli()
+
+    @Test
+    fun `el atajo de hoy combina el dia local con la hora elegida`() {
+        val at = reminderAtLocalDay(0, 14, 30, havana, fixedNow())
+        val expected = ZonedDateTime.of(2026, 9, 29, 14, 30, 0, 0, havana)
+            .toInstant().toEpochMilli()
+        assertEquals(expected, at)
+    }
+
+    @Test
+    fun `el atajo de manana cae al dia siguiente con la hora elegida`() {
+        val at = reminderAtLocalDay(1, 8, 0, havana, fixedNow())
+        val expected = ZonedDateTime.of(2026, 9, 30, 8, 0, 0, 0, havana)
+            .toInstant().toEpochMilli()
+        assertEquals(expected, at)
+    }
+
+    @Test
+    fun `el atajo respeta la medianoche como inicio del dia`() {
+        // A las 00:05 la hora 14:30 debe caer el mismo día, no el anterior.
+        val midnight = ZonedDateTime.of(2026, 9, 29, 0, 5, 0, 0, havana)
+            .toInstant().toEpochMilli()
+        val at = reminderAtLocalDay(0, 14, 30, havana, midnight)
+        val day = ZonedDateTime.ofInstant(Instant.ofEpochMilli(at), havana).toLocalDate()
+        assertEquals(29, day.dayOfMonth)
     }
 }

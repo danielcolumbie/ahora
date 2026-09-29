@@ -56,75 +56,69 @@ fun TaskFormFields(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+    // Tres secciones con las etiquetas del sistema ([FormSection]): la misma
+    // jerarquía que usan el diálogo de edición y el de recordatorio, para
+    // que crear, editar y programar un aviso se sientan como lo mismo.
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
         // Prioridad: cuatro opciones excluyentes. La app es minimalista:
         // chips compactos, sin iconos ni colores chillones aquí.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            TaskPriority.entries.forEach { option ->
-                FilterChip(
-                    selected = priority == option,
-                    onClick = { onPriorityChange(option) },
-                    label = { Text(option.label) }
-                )
+        FormSection(title = "Prioridad") {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                TaskPriority.entries.forEach { option ->
+                    FilterChip(
+                        selected = priority == option,
+                        onClick = { onPriorityChange(option) },
+                        label = { Text(option.label) }
+                    )
+                }
             }
         }
 
         // Fecha límite: atajos Hoy/Mañana + selector de día.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            Text(
-                text = "Vence",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (dueAt == null) {
-                FilterChip(
-                    selected = false,
-                    onClick = { onDueAtChange(startOfDayMillis(0)) },
-                    label = { Text("Hoy") }
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { onDueAtChange(startOfDayMillis(1)) },
-                    label = { Text("Mañana") }
-                )
-                TextButton(onClick = { showDatePicker = true }) {
-                    Text("Elegir…")
-                }
-            } else {
-                InputChip(
-                    selected = true,
-                    onClick = { showDatePicker = true },
-                    label = { Text(formatDueLabel(dueAt)) },
-                    trailingIcon = {
-                        IconButton(onClick = { onDueAtChange(null) }) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Quitar fecha límite",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+        FormSection(title = "Fecha límite") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                if (dueAt == null) {
+                    FilterChip(
+                        selected = false,
+                        onClick = { onDueAtChange(startOfDayMillis(0)) },
+                        label = { Text("Hoy") }
+                    )
+                    FilterChip(
+                        selected = false,
+                        onClick = { onDueAtChange(startOfDayMillis(1)) },
+                        label = { Text("Mañana") }
+                    )
+                    TextButton(onClick = { showDatePicker = true }) {
+                        Text("Elegir…")
                     }
-                )
+                } else {
+                    InputChip(
+                        selected = true,
+                        onClick = { showDatePicker = true },
+                        label = { Text(formatDueLabel(dueAt)) },
+                        trailingIcon = {
+                            IconButton(onClick = { onDueAtChange(null) }) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Quitar fecha límite",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    )
+                }
             }
         }
 
         // Recurrencia: al completar una tarea recurrente se genera la
         // siguiente ocurrencia (ETAPA 11). Cinco opciones excluyentes.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            Text(
-                text = "Se repite",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        FormSection(title = "Recurrencia") {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)

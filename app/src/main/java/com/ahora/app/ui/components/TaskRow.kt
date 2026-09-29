@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,12 +29,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,12 +45,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import com.ahora.app.data.Task
@@ -57,11 +66,14 @@ import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
 
 /**
- * Fila de tarea: checkbox circular, texto y acciones sobre el fondo.
+ * Fila de tarea: checkbox circular, texto y un solo botón de opciones.
  *
  * Sin tarjeta: el contenido es protagonista y las filas se separan con un
  * divisor sutil (ver [TasksColumn]). La superficie solo aparece donde aporta
  * jerarquía; aquí no aporta nada.
+ *
+ * La fila mide como mínimo [Sizes.minTouchRow] (48dp) de alto, para que el
+ * área táctil no dependa del contenido.
  *
  * Los callbacks reciben la tarea en vez de lambdas `() -> Unit` creadas por
  * fila: así son la misma instancia para todas las filas y Compose puede
@@ -93,6 +105,7 @@ fun TaskRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = Sizes.minTouchRow)
             .alpha(alpha)
             .padding(vertical = Spacing.m)
     ) {
@@ -138,18 +151,79 @@ fun TaskRow(
                 }
             }
         }
-        IconButton(onClick = { onToggleReminder(task) }) {
+        // Un solo botón de opciones (⋮) en vez de los dos iconos directos
+        // de antes (campana + papelera): la fila respira y sigue siendo
+        // fácil de escanear. Ver [RowOverflowMenu].
+        RowOverflowMenu(
+            task = task,
+            onToggleReminder = onToggleReminder,
+            onDelete = onDelete
+        )
+    }
+}
+
+/**
+ * Menú de opciones de la fila: «Añadir/Quitar recordatorio» y «Eliminar».
+ *
+ * Sustituye a los dos botones de icono directos (campana + papelera), que
+ * hacían la fila más densa de lo necesario. El menú es descubrible (un
+ * botón visible, etiquetado «Más opciones»), accesible y no añade gestos
+ * que aprender. Las acciones conservan su flujo: eliminar sigue pasando
+ * por el Deshacer del snackbar, y el recordatorio abre el diálogo de
+ * fecha y hora.
+ */
+@Composable
+private fun RowOverflowMenu(
+    task: Task,
+    onToggleReminder: (Task) -> Unit,
+    onDelete: (Task) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
-                contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio",
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Más opciones",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IconButton(onClick = { onDelete(task) }) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = "Eliminar tarea",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            val hasReminder = task.reminderAt != null
+            DropdownMenuItem(
+                text = {
+                    Text(if (hasReminder) "Quitar recordatorio" else "Añadir recordatorio")
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (hasReminder) {
+                            Icons.Outlined.NotificationsOff
+                        } else {
+                            Icons.Outlined.Notifications
+                        },
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onToggleReminder(task)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Eliminar") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete(task)
+                }
             )
         }
     }
@@ -160,6 +234,9 @@ fun TaskRow(
  * propósito: el acento se reserva para acciones y estados, no para
  * metadatos que aparecen en cada fila. Solo la prioridad alta y la fecha
  * vencida usan el color de error, porque ahí sí hay algo que comunicar.
+ *
+ * Solo usa tokens del tema propio (`surfaceVariant` / `onSurfaceVariant` /
+ * `labelSmall` de [AhoraTheme]): nada depende de los defaults de M3.
  */
 @Composable
 private fun MetaPill(
@@ -231,7 +308,10 @@ private fun RecurrencePill(recurrence: TaskRecurrence) {
 
 /**
  * Botón circular de completado, con semántica de checkbox para accesibilidad.
- * Al marcar/desmarcar, el círculo rebota con un spring y el check entra con escala.
+ * Al marcar/desmarcar, el círculo crece con un spring sutil (sin rebote) y
+ * el check entra con escala; además se emite un tick háptico corto como
+ * confirmación (FASE 7/9: sutil, solo cuando aporta; el sistema decide si
+ * vibra según sus ajustes).
  * El acento aquí sí comunica: es el estado de la tarea.
  */
 @Composable
@@ -256,6 +336,7 @@ private fun CircularCheckButton(
         animationSpec = Motion.checkSpring(),
         label = "checkCircleSize"
     )
+    val haptics = LocalHapticFeedback.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -264,7 +345,13 @@ private fun CircularCheckButton(
             .toggleable(
                 value = checked,
                 role = Role.Checkbox,
-                onValueChange = { onToggle() }
+                onValueChange = {
+                    // Tick háptico corto como confirmación (FASE 7/9):
+                    // sutil, solo cuando aporta; el sistema decide si vibra
+                    // según sus ajustes.
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onToggle()
+                }
             )
     ) {
         Box(

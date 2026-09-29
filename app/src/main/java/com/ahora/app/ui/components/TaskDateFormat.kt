@@ -119,6 +119,21 @@ internal fun startOfDayMillis(
 }
 
 /**
+ * Instante para un recordatorio elegido con un atajo de día (hoy/mañana):
+ * el inicio del día local más la hora y el minuto. Los atajos no pasan
+ * por el DatePicker (que devuelve medianoche UTC), así que no necesitan
+ * la corrección de [reminderInstantMillis].
+ * Función pura para poder probarla.
+ */
+internal fun reminderAtLocalDay(
+    dayOffset: Int,
+    hour: Int,
+    minute: Int,
+    zone: ZoneId = ZoneId.systemDefault(),
+    now: Long = System.currentTimeMillis()
+): Long = startOfDayMillis(dayOffset, zone, now) + hour * 3_600_000L + minute * 60_000L
+
+/**
  * Inicio del día local de la [fecha] dada en milisegundos.
  * Lo usa el lenguaje natural (ETAPA 13): el parser devuelve un
  * [LocalDate] y aquí se convierte a como se guarda la fecha límite.

@@ -1,9 +1,8 @@
 package com.ahora.app.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -44,18 +43,26 @@ fun EditTaskDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar tarea") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = {
-                        if (text.isNotBlank()) onConfirm(text, priority, dueAt, recurrence)
-                    }),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(Spacing.m))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.l)
+            ) {
+                // El título es la primera sección del diálogo, con la
+                // etiqueta del sistema, como el resto de secciones.
+                FormSection(title = "Título") {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (text.isNotBlank()) onConfirm(text, priority, dueAt, recurrence)
+                        }),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                // Prioridad, fecha límite y recurrencia: el componente
+                // compartido, que ya trae sus propias secciones.
                 TaskFormFields(
                     priority = priority,
                     onPriorityChange = { priority = it },
