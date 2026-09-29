@@ -54,6 +54,11 @@ android {
         compose = true
         buildConfig = true
     }
+    sourceSets {
+        // El schema Room exportado (app/schemas/) queda disponible como asset
+        // de los tests de instrumentación: MigrationTestHelper lo lee de ahí.
+        getByName("androidTest").assets.srcDir("schemas")
+    }
     // Room: exporta el schema de la BD para poder validar futuras migraciones.
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
@@ -92,4 +97,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // Solo para el scaffold de tests de migración (instrumentation).
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

@@ -9,6 +9,16 @@ import android.os.Build
 import android.provider.Settings
 
 /**
+ * Contrato mínimo para programar/cancelar recordatorios.
+ * Existe como interfaz para poder probar [com.ahora.app.domain.TaskRepository]
+ * en JVM con un programador falso, sin AlarmManager ni Context.
+ */
+interface AlarmScheduler {
+    fun schedule(taskId: Long, atMillis: Long)
+    fun cancel(taskId: Long)
+}
+
+/**
  * Programa recordatorios con AlarmManager: funcionan sin internet
  * y sobreviven al cierre de la app (se reprograman al reiniciar).
  *
@@ -17,11 +27,18 @@ import android.provider.Settings
  * - Android 12+: alarma exacta solo con el permiso de "alarmas exactas";
  *   sin él se usa la mejor aproximación disponible, que puede llegar tarde.
  */
-class ReminderScheduler(private val context: Context) {
+class ReminderScheduler(private val context: Context) : AlarmScheduler {
 
     companion object {
         const val EXTRA_TASK_ID = "extra_task_id"
         private const val REQUEST_CODE_OFFSET = 10_000
+
+        /**
+         * Código de request del PendingIntent de una tarea. Función pura:
+         * cada tarea necesita un PendingIntent distinto para que sus alarmas
+         * no se pisen entre sí.
+         */
+        internal fun requestCodeFor(taskId: Long): Int = (REQUEST_CODE_OFFSET + taskId).toInt()
     }
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -32,13 +49,13 @@ class ReminderScheduler(private val context: Context) {
         }
         return PendingIntent.getBroadcast(
             context,
-            (REQUEST_CODE_OFFSET + taskId).toInt(),
+            requestCodeFor(taskId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
 
-    fun schedule(taskId: Long, atMillis: Long) {
+    override fun schedule(taskId: Long, atMillis: Long) {
         val pending = pendingIntent(taskId)
         if (hasExactAlarmPermission()) {
             runCatching {
@@ -55,7 +72,7 @@ class ReminderScheduler(private val context: Context) {
         }
     }
 
-    fun cancel(taskId: Long) {
+    override fun cancel(taskId: Long) {
         alarmManager.cancel(pendingIntent(taskId))
     }
 

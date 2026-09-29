@@ -2,17 +2,21 @@ package com.ahora.app.domain
 
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskDao
-import com.ahora.app.notifications.ReminderScheduler
+import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Lógica de negocio de las tareas.
  * Coordina la base de datos con el programador de recordatorios:
  * cada cambio en una tarea mantiene sus alarmas sincronizadas.
+ *
+ * [clock] es inyectable para poder probar la lógica de tiempos
+ * de forma determinista en JVM.
  */
 class TaskRepository(
     private val dao: TaskDao,
-    private val scheduler: ReminderScheduler
+    private val scheduler: AlarmScheduler,
+    private val clock: () -> Long = System::currentTimeMillis
 ) {
 
     fun observeAll(): Flow<List<Task>> = dao.observeAll()
@@ -31,7 +35,7 @@ class TaskRepository(
         } else {
             // Al completar se cancela la alarma y se limpia el recordatorio:
             // si no, el pill quedaría obsoleto para siempre.
-            task.copy(isDone = true, doneAt = System.currentTimeMillis(), reminderAt = null)
+            task.copy(isDone = true, doneAt = clock(), reminderAt = null)
         }
         dao.upsert(updated)
         if (updated.isDone) {
@@ -39,7 +43,7 @@ class TaskRepository(
         } else {
             // Al desmarcar, se recupera el recordatorio si sigue siendo futuro.
             updated.reminderAt?.let { at ->
-                if (at > System.currentTimeMillis()) scheduler.schedule(task.id, at)
+                if (at > clock()) scheduler.schedule(task.id, at)
             }
         }
     }
@@ -60,14 +64,14 @@ class TaskRepository(
     suspend fun restore(task: Task) {
         dao.upsert(task)
         task.reminderAt?.let { at ->
-            if (at > System.currentTimeMillis() && !task.isDone) {
+            if (at > clock() && !task.isDone) {
                 scheduler.schedule(task.id, at)
             }
         }
     }
 
     suspend fun setReminder(task: Task, at: Long) {
-        require(at > System.currentTimeMillis()) { "El recordatorio debe ser en el futuro" }
+        require(at > clock()) { "El recordatorio debe ser en el futuro" }
         dao.upsert(task.copy(reminderAt = at))
         scheduler.schedule(task.id, at)
     }

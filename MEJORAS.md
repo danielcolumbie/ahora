@@ -34,6 +34,17 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### ETAPA 3 (2026-09-29) — tests fundamentales (sin cambios en la app)
+- **29 pruebas JVM, todas verdes** (ejecutadas con JUnitCore directo, ver nota abajo):
+- `TaskRepositoryTest`: 12 pruebas de la lógica de negocio con DAO y programador falsos (crear, completar/desmarcar, eliminar, deshacer, recordatorios, reprogramación). Reloj inyectable para tiempos deterministas.
+- `ReminderSchedulerTest`: 4 pruebas — el código de request del PendingIntent es distinto por tarea (las alarmas no se pisan).
+- `SettingsRepositoryTest`: 4 pruebas con DataStore real sobre archivo temporal (valores por defecto y persistencia entre instancias).
+- `TaskDateFormatTest` reescrito: 5 pruebas con instantes fijos y zona `America/Havana` — ya no es frágil cerca de la medianoche UTC.
+- `ReminderDateTest` (ETAPA 2) sigue verde: 4 pruebas de regresión de la fecha en Cuba.
+- Pruebas instrumentadas (compiladas OK, requieren dispositivo/emulador — no se ejecutaron aquí): `TaskDaoTest` con 6 pruebas (insertar, leer, actualizar, borrar, `observeAll`, `observePending`, `getPendingReminders`) sobre Room en memoria, y scaffold de migración `MigrationTest` que valida la v1 contra el schema exportado (punto de partida para la migración 1→2).
+- Cambios mínimos en producción solo para hacer el código testeable: interfaz `AlarmScheduler`, reloj inyectable en `TaskRepository`, `SettingsRepository` recibe el `DataStore` ya construido, `requestCodeFor` extraído como función pura.
+- Nota: el worker de tests de Gradle (`testDebugUnitTest`) sigue roto en este entorno (NPE en `SuiteTestClassProcessor`, también con tests preexistentes); los tests JVM se ejecutan vía JUnitCore directo sobre las clases compiladas por Gradle (classpath = runtimeClasspath del test, con los `classes.jar` extraídos de los AAR).
+- Verificación: `assembleDebug` OK, `lintDebug` OK (49 avisos, 0 errores). Sin bump de versión, sin APK nuevo, sin tag.
 ### 1.2.1 (2026-09-29) — ajustes honestos (A1)
 - Decisión de producto de Daniel: se eliminan los interruptores de Sonido y Vibración de Ajustes (Android no permite cambiarlos en un canal ya creado, así que prometían algo falso).
 - En su lugar, la fila "Sonido y vibración" abre los ajustes de notificación del sistema para el canal de la app, que sí puede cambiarlos (con fallback a los ajustes generales de notificaciones).
