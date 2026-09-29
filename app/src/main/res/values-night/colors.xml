@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget (ETAPA 12) en modo oscuro: superficies apenas más claras que
+         el fondo negro de la app, texto papel, acento azul eléctrico. -->
+    <color name="widget_surface">#FF141417</color>
+    <color name="widget_text">#FFF5F3EE</color>
+    <color name="widget_text_secondary">#FFA8A6A0</color>
+    <color name="widget_accent">#FF5B93FF</color>
+    <color name="widget_danger">#FFF2B8B5</color>
+    <color name="widget_divider">#1AF5F3EE</color>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget de Ahora (ETAPA 12): tareas pendientes de hoy y próximas.
+     updatePeriodMillis = 0: sin despertares periódicos (batería); el
+     refresco es reactivo, cuando cambia la base de datos. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_layout"
+    android:description="@string/widget_desc"
+    android:widgetCategory="home_screen"
+    android:resizeMode="horizontal|vertical" />

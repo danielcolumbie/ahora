@@ -35,6 +35,15 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Changelog
 
+### 1.11.0 (2026-09-29) — widget de pantalla de inicio (ETAPA 12)
+- **Nuevo: widget "Tareas pendientes de hoy"** (`AppWidgetProvider` + `RemoteViews`, sin Glance ni dependencias nuevas): encabezado con la marca y la fecha, lista de hasta 7 tareas con prioridad y fecha límite, estado vacío "Sin tareas pendientes". Tocar una fila abre la app; el círculo de cada fila **marca la tarea como hecha sin abrir la app** (pasa por `TaskRepository.toggleDone`, así que respeta recurrencia y alarmas igual que en la app); el botón "+" abre la app.
+- **Selección de tareas**: las vencidas y las de hoy van primero (estables), luego las próximas con el mismo orden de la pantalla "Hoy" (prioridad, fecha). La lógica es pura (`widget/WidgetContent.kt`) y la consulta está acotada en SQL (`getPendingForWidget(limit)`): no se materializa toda la tabla.
+- **Sin polling ni gasto de batería**: `updatePeriodMillis = 0`. El refresco es reactivo — `AhoraApplication` observa `observePending()` y refresca el widget solo cuando cambia la BD (crear, completar, editar, borrar, importar). Sin servicios permanentes ni temporizadores.
+- Estilo acorde a la app: paleta propia en claro y oscuro (`values-night`), sin tarjetas ni sombras.
+- 8 pruebas nuevas (122 JVM en total, todas verdes): selección/orden/cap, etiquetas de fecha, overdue, prioridad.
+- **Qué NO se hizo**: creación rápida de tareas desde el widget (el "+" solo abre la app; duplicar la captura en RemoteViews complicaba sin aportar), ni insignia de conteo en el icono. Si el proceso está muerto y pasa la medianoche, las etiquetas "Hoy" se actualizan en el próximo evento (no hay despertador periódico por diseño, para no gastar batería).
+- **Próxima etapa pendiente**: ETAPA 13 — Lenguaje natural.
+- Nota: el worker de tests de Gradle (`testDebugUnitTest`) sigue roto en este entorno (NPE en `SuiteTestClassProcessor`); los tests JVM se ejecutaron vía JUnitCore directo sobre las clases compiladas (classpath = `debugUnitTestRuntimeClasspath` con los `classes.jar` extraídos de los AAR; el `android.jar` va AL FINAL para no opacar el `org.json:json` real con sus stubs).
 ### 1.10.0 (2026-09-29) — recurrencia (ETAPA 11)
 - **Nuevo: tareas recurrentes** (Sin repetición / Todos los días / Entre semana / Semanal / Mensual). Se elige al crear (campos bajo la barra de captura mientras escribes, junto a prioridad y fecha) y al editar (mismo componente `TaskFormFields` ampliado). En la fila se muestra como pill con icono de repetición, neutra como las demás.
 - **Al completar una tarea recurrente, la ocurrencia queda marcada como hecha y se genera la siguiente automáticamente**, con su fecha límite y su recordatorio desplazados según la regla. La siguiente ocurrencia **conserva el recordatorio**: si la tarea sonaba cada día a las 8:00, la próxima también suena a las 8:00 (la alarma se reprograma con el sistema, sin duplicados: la vieja se cancela primero).

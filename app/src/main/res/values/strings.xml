@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ahora</string>
+    <!-- Widget (ETAPA 12) -->
+    <string name="widget_desc">Tareas pendientes de hoy</string>
+    <string name="widget_brand">AHORA</string>
+    <string name="widget_empty">Sin tareas pendientes</string>
+    <string name="widget_open_desc">Abrir Ahora</string>
+    <string name="widget_toggle_desc">Marcar como hecha</string>
 </resources>

@@ -45,6 +45,9 @@ class TaskRepositoryTest {
         override fun observePending(): Flow<List<Task>> =
             tasks.map { list -> list.filter { !it.isDone } }
 
+        override suspend fun getPendingForWidget(limit: Int): List<Task> =
+            tasks.value.filter { !it.isDone }.take(limit)
+
         /**
          * Emula el LIKE de Room con `ESCAPE '\'`: el patrón llega como
          * %<texto escapado>% desde [com.ahora.app.data.buildSearchPattern].

@@ -29,6 +29,27 @@
             </intent-filter>
         </activity>
 
+        <!-- Widget de pantalla de inicio (ETAPA 12): tareas pendientes de
+             hoy. Sin despertares periódicos (updatePeriodMillis = 0); el
+             refresco es reactivo cuando cambia la base de datos. -->
+        <receiver
+            android:name=".widget.AhoraWidgetProvider"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ahora_widget_info" />
+        </receiver>
+
+        <!-- Sirve las filas del widget (colección RemoteViews). -->
+        <service
+            android:name=".widget.WidgetTaskService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <!-- Muestra la notificación cuando suena una alarma de recordatorio -->
         <receiver
             android:name=".notifications.ReminderReceiver"

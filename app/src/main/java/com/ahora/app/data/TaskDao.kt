@@ -23,6 +23,15 @@ interface TaskDao {
     fun observePending(): Flow<List<Task>>
 
     /**
+     * Pendientes para el widget (ETAPA 12): el mismo orden que
+     * [observePending] pero con límite, en una sola consulta suspendida.
+     * El widget solo necesita las primeras filas, no toda la tabla en
+     * memoria (teléfonos modestos).
+     */
+    @Query("SELECT * FROM tasks WHERE isDone = 0 ORDER BY priority DESC, (dueAt IS NULL), dueAt ASC, createdAt DESC LIMIT :limit")
+    suspend fun getPendingForWidget(limit: Int): List<Task>
+
+    /**
      * Búsqueda por título. [pattern] ya viene escapado desde
      * [buildSearchPattern] (`%`, `_` y `\` son literales, no comodines).
      * El orden es el mismo que [observeAll]: pendientes primero.
