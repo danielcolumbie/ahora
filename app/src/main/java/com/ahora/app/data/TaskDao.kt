@@ -26,4 +26,12 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE reminderAt IS NOT NULL AND isDone = 0 AND reminderAt > :now")
     suspend fun getPendingReminders(now: Long = System.currentTimeMillis()): List<Task>
+
+    /**
+     * Limpia los recordatorios ya vencidos para que el pill de la tarea no
+     * muestre una hora obsoleta (p. ej. si el teléfono estuvo apagado cuando
+     * debía sonar). No borra tareas, solo el campo del recordatorio.
+     */
+    @Query("UPDATE tasks SET reminderAt = NULL WHERE reminderAt IS NOT NULL AND isDone = 0 AND reminderAt <= :now")
+    suspend fun clearExpiredReminders(now: Long = System.currentTimeMillis())
 }

@@ -23,6 +23,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     private val themeModeKey = intPreferencesKey("theme_mode")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
+    private val exactAlarmNudgeDismissedKey = booleanPreferencesKey("exact_alarm_nudge_dismissed")
 
     val themeMode: Flow<Int> =
         dataStore.data.map { it[themeModeKey] ?: ThemeMode.SYSTEM }
@@ -30,12 +31,24 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     val notificationsEnabled: Flow<Boolean> =
         dataStore.data.map { it[notificationsEnabledKey] ?: true }
 
+    /**
+     * Si el usuario ya descartó el aviso de "permiso de alarmas exactas
+     * revocado". El aviso no debe ser insistente: se muestra una vez y, si
+     * el permiso vuelve a concederse, se rearma para una futura revocación.
+     */
+    val exactAlarmNudgeDismissed: Flow<Boolean> =
+        dataStore.data.map { it[exactAlarmNudgeDismissedKey] ?: false }
+
     suspend fun setThemeMode(mode: Int) {
         dataStore.edit { it[themeModeKey] = mode }
     }
 
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { it[notificationsEnabledKey] = enabled }
+    }
+
+    suspend fun setExactAlarmNudgeDismissed(dismissed: Boolean) {
+        dataStore.edit { it[exactAlarmNudgeDismissedKey] = dismissed }
     }
 }
 

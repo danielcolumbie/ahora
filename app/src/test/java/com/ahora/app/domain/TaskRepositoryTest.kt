@@ -58,6 +58,16 @@ class TaskRepositoryTest {
         // para que "pendiente" se evalúe en el tiempo del test.
         override suspend fun getPendingReminders(now: Long): List<Task> =
             tasks.value.filter { it.reminderAt != null && !it.isDone && it.reminderAt > NOW }
+
+        override suspend fun clearExpiredReminders(now: Long) {
+            tasks.value = tasks.value.map { task ->
+                if (task.reminderAt != null && !task.isDone && task.reminderAt <= NOW) {
+                    task.copy(reminderAt = null)
+                } else {
+                    task
+                }
+            }
+        }
     }
 
     private class FakeScheduler : AlarmScheduler {
@@ -65,6 +75,7 @@ class TaskRepositoryTest {
 
         val scheduled = mutableListOf<Call>()
         val cancelled = mutableListOf<Long>()
+        var exactAlarmPermission = true
 
         override fun schedule(taskId: Long, atMillis: Long) {
             scheduled += Call(taskId, atMillis)
@@ -73,6 +84,11 @@ class TaskRepositoryTest {
         override fun cancel(taskId: Long) {
             cancelled += taskId
         }
+
+        override fun hasExactAlarmPermission(): Boolean = exactAlarmPermission
+
+        // Solo se devuelve null: nunca se invoca nada del stub de Android.
+        override fun exactAlarmSettingsIntent(): android.content.Intent? = null
     }
 
     private lateinit var dao: FakeTaskDao
@@ -255,5 +271,36 @@ class TaskRepositoryTest {
             listOf(FakeScheduler.Call(future.id, NOW + HOUR)),
             scheduler.scheduled
         )
+    }
+
+    @Test
+    fun `pruneExpiredReminders limpia los vencidos y respeta los futuros`() = runTest {
+        val expired = addTask("vencida").copy(reminderAt = NOW - HOUR)
+        val future = addTask("futura").copy(reminderAt = NOW + HOUR)
+        val doneExpired = addTask("hecha vencida").copy(isDone = true, reminderAt = NOW - HOUR)
+        listOf(expired, future, doneExpired).forEach { dao.upsert(it) }
+
+        repo.pruneExpiredReminders()
+
+        assertNull(dao.getById(expired.id)!!.reminderAt)
+        assertEquals(NOW + HOUR, dao.getById(future.id)!!.reminderAt)
+        // Las completadas no se tocan (su recordatorio ya se limpió al completar).
+        assertEquals(NOW - HOUR, dao.getById(doneExpired.id)!!.reminderAt)
+    }
+
+    @Test
+    fun `hasFutureReminders refleja si hay recordatorios por sonar`() = runTest {
+        assertFalse(repo.hasFutureReminders())
+
+        val task = addTask().copy(reminderAt = NOW + HOUR)
+        dao.upsert(task)
+        assertTrue(repo.hasFutureReminders())
+
+        repo.pruneExpiredReminders()
+        assertTrue(repo.hasFutureReminders())
+
+        dao.upsert(task.copy(reminderAt = NOW - HOUR))
+        repo.pruneExpiredReminders()
+        assertFalse(repo.hasFutureReminders())
     }
 }

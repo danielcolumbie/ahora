@@ -16,6 +16,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +29,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +44,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -166,6 +171,45 @@ fun HomeScreen(viewModel: MainViewModel) {
             )
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Aviso puntual si el sistema revocó el permiso de alarmas exactas:
+            // sin él, los recordatorios pueden llegar tarde. Una sola vía clara,
+            // descartable, que no insiste.
+            val showNudge by viewModel.exactAlarmNudge.collectAsStateWithLifecycle()
+            if (showNudge) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp)
+                    ) {
+                        Text(
+                            text = "Tus recordatorios podrían llegar tarde: " +
+                                "el permiso de alarmas exactas está desactivado.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = {
+                            viewModel.exactAlarmSettingsIntent()
+                                ?.let { context.startActivity(it) }
+                            viewModel.dismissExactAlarmNudge()
+                        }) { Text("Ajustes") }
+                        IconButton(onClick = { viewModel.dismissExactAlarmNudge() }) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Descartar aviso",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
@@ -253,6 +297,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                     onUpdateTitle = viewModel::updateTitle,
                     onSetReminder = viewModel::setReminder,
                     onClearReminder = viewModel::clearReminder,
+                    onPastReminder = viewModel::pastReminderSelected,
                     modifier = Modifier.weight(1f)
                 )
             }

@@ -11,11 +11,24 @@ import android.provider.Settings
 /**
  * Contrato mínimo para programar/cancelar recordatorios.
  * Existe como interfaz para poder probar [com.ahora.app.domain.TaskRepository]
- * en JVM con un programador falso, sin AlarmManager ni Context.
+ * y el aviso de permiso de alarmas exactas en JVM con un programador falso,
+ * sin AlarmManager ni Context.
  */
 interface AlarmScheduler {
     fun schedule(taskId: Long, atMillis: Long)
     fun cancel(taskId: Long)
+
+    /**
+     * true si se puede usar alarma exacta. En Android 11 y anteriores siempre
+     * es true (no existe el permiso); en Android 12+ depende del usuario.
+     */
+    fun hasExactAlarmPermission(): Boolean
+
+    /**
+     * Intent a los ajustes del sistema para pedir el permiso de alarmas
+     * exactas (Android 12+). null en versiones anteriores (no hace falta).
+     */
+    fun exactAlarmSettingsIntent(): Intent?
 }
 
 /**
@@ -80,14 +93,14 @@ class ReminderScheduler(private val context: Context) : AlarmScheduler {
      * true si se puede usar alarma exacta. En Android 11 y anteriores siempre
      * es true (no existe el permiso); en Android 12+ depende del usuario.
      */
-    fun hasExactAlarmPermission(): Boolean =
+    override fun hasExactAlarmPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
     /**
      * Intent a los ajustes del sistema para pedir el permiso de alarmas
      * exactas (Android 12+). null en versiones anteriores (no hace falta).
      */
-    fun exactAlarmSettingsIntent(): Intent? =
+    override fun exactAlarmSettingsIntent(): Intent? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Intent(
                 Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,

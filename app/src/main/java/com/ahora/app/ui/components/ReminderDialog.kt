@@ -19,6 +19,10 @@ import java.util.Calendar
 /**
  * Diálogo en dos pasos (fecha → hora) para fijar un recordatorio local.
  * Devuelve el instante en milisegundos o nada si se cancela.
+ *
+ * Si el instante elegido ya pasó, también se devuelve: quien lo llama
+ * valida con [isFutureInstant] y avisa al usuario en vez de descartarlo
+ * en silencio.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +67,7 @@ fun ReminderDialog(
                             hour = timeState.hour,
                             minute = timeState.minute
                         )
-                        if (atMillis > System.currentTimeMillis()) {
-                            onConfirm(atMillis)
-                        } else {
-                            onDismiss()
-                        }
+                        onConfirm(atMillis)
                     }
                 ) { Text("Guardar") }
             },

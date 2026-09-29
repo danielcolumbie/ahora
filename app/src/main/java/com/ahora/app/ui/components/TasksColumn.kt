@@ -48,6 +48,7 @@ fun TasksColumn(
     onUpdateTitle: (Task, String) -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
+    onPastReminder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
@@ -137,6 +138,13 @@ fun TasksColumn(
         ReminderDialog(
             onDismiss = { reminderTask = null },
             onConfirm = { atMillis ->
+                if (!isFutureInstant(atMillis)) {
+                    // Fecha pasada: avisar con un mensaje claro en vez de
+                    // descartar la elección en silencio.
+                    onPastReminder()
+                    reminderTask = null
+                    return@ReminderDialog
+                }
                 val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     ContextCompat.checkSelfPermission(
                         context, Manifest.permission.POST_NOTIFICATIONS

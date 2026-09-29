@@ -93,4 +93,25 @@ class SettingsRepositoryTest {
         assertFalse(repository(scope2, file).notificationsEnabled.first())
         scope2.cancel()
     }
+
+    @Test
+    fun `el aviso de alarmas exactas no viene descartado por defecto`() = runTest {
+        val scope = storeScope()
+        assertFalse(repository(scope, freshFile()).exactAlarmNudgeDismissed.first())
+        scope.cancel()
+    }
+
+    @Test
+    fun `descartar el aviso de alarmas exactas persiste`() = runTest {
+        val file = freshFile()
+        val scope1 = storeScope()
+        val repo1 = repository(scope1, file)
+        repo1.setExactAlarmNudgeDismissed(true)
+        assertTrue(repo1.exactAlarmNudgeDismissed.first())
+        closeStore(scope1)
+
+        val scope2 = storeScope()
+        assertTrue(repository(scope2, file).exactAlarmNudgeDismissed.first())
+        scope2.cancel()
+    }
 }

@@ -83,8 +83,24 @@ class TaskRepository(
 
     /** Reprograma todos los recordatorios pendientes (p. ej. tras reiniciar el teléfono). */
     suspend fun rescheduleAll() {
-        dao.getPendingReminders().forEach { task ->
+        dao.getPendingReminders(clock()).forEach { task ->
             task.reminderAt?.let { scheduler.schedule(task.id, it) }
         }
     }
+
+    /**
+     * Limpia los recordatorios ya vencidos (el teléfono pudo estar apagado
+     * cuando debían sonar): el pill no debe mostrar una hora del pasado.
+     */
+    suspend fun pruneExpiredReminders() {
+        dao.clearExpiredReminders(clock())
+    }
+
+    /**
+     * true si hay al menos un recordatorio futuro pendiente. Se usa para
+     * decidir si vale la pena avisar sobre el permiso de alarmas exactas:
+     * sin recordatorios pendientes, el aviso sería ruido.
+     */
+    suspend fun hasFutureReminders(): Boolean =
+        dao.getPendingReminders(clock()).isNotEmpty()
 }

@@ -52,3 +52,12 @@ internal fun reminderInstantMillis(
     val date = Instant.ofEpochMilli(dateMillisUtc).atZone(ZoneOffset.UTC).toLocalDate()
     return date.atTime(LocalTime.of(hour, minute)).atZone(zone).toInstant().toEpochMilli()
 }
+
+/**
+ * true si [atMillis] es un instante estrictamente futuro respecto a [now].
+ * El instante exacto de "ahora" no cuenta como futuro: programar una alarma
+ * en el pasado (o en este mismo instante) nunca debe pasar en silencio.
+ * Función pura para poder probarla.
+ */
+internal fun isFutureInstant(atMillis: Long, now: Long = System.currentTimeMillis()): Boolean =
+    atMillis > now

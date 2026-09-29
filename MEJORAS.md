@@ -34,6 +34,13 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.3.0 (2026-09-29) — recordatorios a prueba de balas (ETAPA 4)
+- Los recordatorios se reconcilian con la BD en más casos: además del reinicio, también al cambiar la hora o la zona horaria y al actualizar la app (`BootReceiver` ahora escucha `TIME_SET`, `TIMEZONE_CHANGED` y `MY_PACKAGE_REPLACED`).
+- Al abrir la app se verifica en frío que ninguna alarma se haya perdido: se reprograman las futuras (idempotente) y se limpian los recordatorios vencidos para que el pill no muestre horas del pasado. Sin polling ni servicios permanentes.
+- Elegir una fecha/hora pasada en el diálogo ya no se descarta en silencio: la app avisa "Esa hora ya pasó, elige una futura".
+- Si el sistema revoca el permiso de alarmas exactas (Android 12+), aparece un aviso puntual en la pantalla principal con acceso directo a los ajustes del sistema. No insistente: se descarta y solo vuelve si el permiso se concede y se revoca de nuevo; no aparece si no hay recordatorios pendientes.
+- Confirmado: las alarmas ya usan `setExactAndAllowWhileIdle`, lo máximo que Android permite en Doze/ahorro de batería sin servicio permanente.
+- 12 pruebas nuevas (41 JVM en total, todas verdes): condición del aviso de permiso (5), validación de fecha pasada (3), limpieza de vencidos y detección de pendientes en el repositorio (2), persistencia del descarte del aviso (2).
 ### ETAPA 3 (2026-09-29) — tests fundamentales (sin cambios en la app)
 - **29 pruebas JVM, todas verdes** (ejecutadas con JUnitCore directo, ver nota abajo):
 - `TaskRepositoryTest`: 12 pruebas de la lógica de negocio con DAO y programador falsos (crear, completar/desmarcar, eliminar, deshacer, recordatorios, reprogramación). Reloj inyectable para tiempos deterministas.

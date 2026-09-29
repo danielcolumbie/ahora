@@ -35,12 +35,17 @@
             android:name=".notifications.ReminderReceiver"
             android:exported="false" />
 
-        <!-- Reprograma los recordatorios pendientes tras reiniciar el teléfono -->
+        <!-- Reconcilia los recordatorios con la BD local: tras reiniciar el
+             teléfono, al cambiar la hora o la zona horaria, y al actualizar
+             la app (las alarmas de AlarmManager no sobreviven a todo esto). -->
         <receiver
             android:name=".notifications.BootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>

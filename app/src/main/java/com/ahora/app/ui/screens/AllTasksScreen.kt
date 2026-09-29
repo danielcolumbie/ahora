@@ -52,6 +52,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     onUpdateTitle = viewModel::updateTitle,
                     onSetReminder = viewModel::setReminder,
                     onClearReminder = viewModel::clearReminder,
+                    onPastReminder = viewModel::pastReminderSelected,
                     modifier = Modifier.weight(1f)
                 )
             }
