@@ -13,8 +13,8 @@ android {
         applicationId = "com.ahora.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -53,6 +53,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    // Room: exporta el schema de la BD para poder validar futuras migraciones.
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
     packaging {
         resources {

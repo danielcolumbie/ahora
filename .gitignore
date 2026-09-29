@@ -1,6 +1,7 @@
 # Gradle / Android Studio
 .gradle/
 build/
+.kotlin/
 local.properties
 *.iml
 
