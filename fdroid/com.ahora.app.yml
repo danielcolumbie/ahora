@@ -2,15 +2,15 @@
 # Se envía como Merge Request al repo fdroiddata:
 #   https://gitlab.com/fdroid/fdroiddata
 # El archivo debe llamarse metadata/com.ahora.app.yml
-# Sustituir <USUARIO> por el usuario real de GitHub antes de enviarlo.
+# Sustituir danielcolumbie por el usuario real de GitHub antes de enviarlo.
 
 Categories:
   - Productivity
 License: MIT
 AuthorName: Daniel Columbié
-WebSite: https://github.com/<USUARIO>/ahora
-SourceCode: https://github.com/<USUARIO>/ahora
-IssueTracker: https://github.com/<USUARIO>/ahora/issues
+WebSite: https://github.com/danielcolumbie/ahora
+SourceCode: https://github.com/danielcolumbie/ahora
+IssueTracker: https://github.com/danielcolumbie/ahora/issues
 
 AutoName: Ahora
 Summary: Sácalo de tu cabeza. Tus tareas, claras y sin ruido.
@@ -29,7 +29,7 @@ Description: |-
   Sin cuentas, sin publicidad, sin rastreo. Solo tus tareas.
 
 RepoType: git
-Repo: https://github.com/<USUARIO>/ahora.git
+Repo: https://github.com/danielcolumbie/ahora.git
 
 Builds:
   - versionName: 1.0.0
