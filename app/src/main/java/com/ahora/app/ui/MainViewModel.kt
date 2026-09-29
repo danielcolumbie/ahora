@@ -29,7 +29,10 @@ class MainViewModel(private val repository: TaskRepository) : ViewModel() {
     val allTasks: StateFlow<List<Task>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _events = MutableSharedFlow<UiEvent>()
+    // Buffer de 1: emitir nunca suspende aunque ninguna pantalla esté
+    // recolectando (p. ej. durante una transición de navegación). Sin esto,
+    // borrar desde "Todas" colgaba la corrutina y se perdía el Deshacer.
+    private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<UiEvent> = _events.asSharedFlow()
 
     fun addTask(title: String) {
@@ -41,16 +44,19 @@ class MainViewModel(private val repository: TaskRepository) : ViewModel() {
     }
 
     fun toggleDone(task: Task) = viewModelScope.launch {
-        repository.toggleDone(task)
+        runCatching { repository.toggleDone(task) }
+            .onFailure { _events.emit(UiEvent.Message("No se pudo actualizar la tarea")) }
     }
 
     fun deleteTask(task: Task) = viewModelScope.launch {
-        repository.delete(task)
-        _events.emit(UiEvent.TaskDeleted(task))
+        runCatching { repository.delete(task) }
+            .onSuccess { _events.emit(UiEvent.TaskDeleted(task)) }
+            .onFailure { _events.emit(UiEvent.Message("No se pudo eliminar la tarea")) }
     }
 
     fun undoDelete(task: Task) = viewModelScope.launch {
-        repository.restore(task)
+        runCatching { repository.restore(task) }
+            .onFailure { _events.emit(UiEvent.Message("No se pudo deshacer")) }
     }
 
     fun updateTitle(task: Task, title: String) {
@@ -67,7 +73,8 @@ class MainViewModel(private val repository: TaskRepository) : ViewModel() {
     }
 
     fun clearReminder(task: Task) = viewModelScope.launch {
-        repository.clearReminder(task)
+        runCatching { repository.clearReminder(task) }
+            .onFailure { _events.emit(UiEvent.Message("No se pudo quitar el recordatorio")) }
     }
 }
 
