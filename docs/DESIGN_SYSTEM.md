@@ -233,11 +233,51 @@ sistema (`Sizes`, `Spacing`).
 ## 10. Adaptabilidad
 
 - Una sola columna hasta 600dp; a partir de ahí, dos columnas (lista +
-  detalle) en tablets.
+  detalle) en tablets. Implementado en 1.23.0 (bloque J):
+  - `ui/adaptive/AdaptiveLayout.kt`: umbrales y decisiones como funciones
+    puras (`isTwoPane`, `isCompactHeader`), probadas en JVM
+    (`AdaptiveLayoutTest`). Sin dependencias nuevas: las pantallas usan
+    `BoxWithConstraints` (mide el espacio real disponible) en vez de
+    `WindowSizeClass` (exigiría añadir `material3-window-size-class`).
+  - `ui/components/AdaptiveListDetail.kt`: en ≥600dp divide el espacio en
+    dos paneles iguales (lista | detalle) con un divisor vertical sutil;
+    por debajo, solo la lista (el detalle se abre como diálogo, como
+    antes). Lo usan Hoy y Todas.
+  - `ui/components/TaskDetailPanel.kt`: el panel de detalle muestra y
+    edita la tarea seleccionada sin diálogos (título en vivo —nunca se
+    guarda en blanco—, prioridad/fecha/recurrencia con `TaskFormFields`,
+    recordatorio con el flujo completo, completar y eliminar). Edición sin
+    estado pendiente: no hay nada que perder al rotar o cambiar de tarea.
+    Sin selección, estado vacío elegante («Sin selección»).
+  - La selección (`selectedTaskId`) vive en cada pantalla con
+    `rememberSaveable`: sobrevive a la rotación; se limpia si la tarea
+    sale de la lista (completada/eliminada).
+  - En dos paneles, tocar una fila selecciona en vez de abrir el diálogo
+    (`TasksColumn.onEditRequest`); en teléfonos el diálogo se conserva.
+  - El flujo de recordatorio (diálogo + permiso de notificaciones + aviso
+    de alarmas exactas) se extrajo de `TasksColumn` a
+    `ui/components/ReminderFlowHost.kt` sin cambiar su conducta: lo
+    comparten la lista y el panel de detalle.
+  - Ajustes en tablets: contenido centrado con ancho máximo 720dp
+    (`AdaptiveLayout.singleColumnMaxWidth`); el panel de detalle se topa
+    en 560dp. En teléfonos no tiene efecto.
+- Encabezado compacto en pantallas bajas (< 480dp de alto, landscape en
+  teléfono): se oculta el lema «Sácalo de tu cabeza.» y se reducen los
+  espacios; la creación y la lista no pelean por el alto.
 - Texto escalable: sin `sp` fijos fuera del sistema; probar a 130% de escala
   de fuente del sistema.
 - `enableEdgeToEdge`: respetar insets (status bar, navegación, teclado) en
-  cada pantalla.
+  cada pantalla. Verificado en 1.23.0 (bloque J):
+  - El `Scaffold` de `NavGraph` ya aplica los insets del sistema al
+    contenido; los `Scaffold` interiores de Hoy y Todas (que solo alojan
+    el snackbar) usaban el `contentWindowInsets` por defecto y los
+    reaplicaban → doble padding superior e inferior. Ahora usan
+    `contentWindowInsets = WindowInsets(0, 0, 0, 0)`.
+  - Teclado: `android:windowSoftInputMode="adjustResize"` en el manifest;
+    la barra de creación está arriba y la lista (`weight(1f)`) cede el
+    espacio; los diálogos M3 gestionan el IME solos.
+  - Sin dispositivo no se pudo comprobar visualmente el resultado final
+    de los insets (ver «Qué NO se pudo verificar» en el changelog 1.23.0).
 
 ## 11. Rendimiento (referencia: Galaxy A14, 4 GB)
 

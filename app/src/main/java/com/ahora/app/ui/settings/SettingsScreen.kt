@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -53,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
 import com.ahora.app.notifications.NotificationHelper
+import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.FormSection
 import com.ahora.app.ui.components.SettingLinkRow
 import com.ahora.app.ui.components.SettingSwitchRow
@@ -199,6 +201,13 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // En tablets las filas no se estiran a lo ancho de la
+                // pantalla: columna centrada y legible (bloque J). En
+                // teléfonos (< 720dp) no tiene efecto. `Center` centra en
+                // horizontal (el alto ya llena el Box, así que en vertical
+                // no cambia nada).
+                .widthIn(max = AdaptiveLayout.singleColumnMaxWidth)
+                .align(Alignment.Center)
                 .verticalScroll(settingsScroll)
                 .padding(horizontal = Spacing.screenHorizontal)
         ) {

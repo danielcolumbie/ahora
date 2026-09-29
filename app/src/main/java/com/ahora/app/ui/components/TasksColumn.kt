@@ -1,10 +1,5 @@
 package com.ahora.app.ui.components
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -13,11 +8,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,9 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
@@ -56,6 +46,11 @@ import kotlinx.coroutines.launch
  * navegación, la lista visible sube al inicio con desplazamiento suave
  * (bloque H). La barra no conoce el scroll de cada pantalla; este flujo,
  * emitido por el ViewModel, lo conecta sin romper el estado restaurado.
+ *
+ * [onEditRequest]: en pantallas anchas (bloque J, dos paneles) tocar una
+ * fila para editarla no abre el diálogo: selecciona la tarea para
+ * mostrarla en el panel de detalle. En `null` (teléfonos) se conserva el
+ * diálogo de edición de siempre.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -69,38 +64,13 @@ fun TasksColumn(
     onPastReminder: () -> Unit,
     alarmScheduler: AlarmScheduler,
     scrollToTopEvents: SharedFlow<Unit>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEditRequest: ((Task) -> Unit)? = null
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
     var reminderTask by remember { mutableStateOf<Task?>(null) }
-    var pendingReminder by remember { mutableStateOf<Pair<Task, Long>?>(null) }
-    var showExactAlarmDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
     val listScope = rememberCoroutineScope()
-
-    // El permiso de notificaciones se pide justo al guardar un recordatorio:
-    // sin él, el aviso nunca llegaría a la barra de estado.
-    val notifPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            pendingReminder?.let { (task, atMillis) -> onSetReminder(task, atMillis) }
-        }
-        pendingReminder = null
-        reminderTask = null
-    }
-
-    fun confirmReminder(task: Task, atMillis: Long) {
-        onSetReminder(task, atMillis)
-        reminderTask = null
-        // Android 12+: sin permiso de alarmas exactas el aviso puede llegar tarde.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !alarmScheduler.hasExactAlarmPermission()
-        ) {
-            showExactAlarmDialog = true
-        }
-    }
 
     // Cada tarea anima su entrada una sola vez: las iniciales de forma
     // escalonada y las que se añadan después, al aparecer. El retardo
@@ -151,7 +121,9 @@ fun TasksColumn(
                     // para todas las filas, no una lambda nueva por fila.
                     onToggleDone = onToggleDone,
                     onDelete = onDelete,
-                    onEdit = { editingTask = it },
+                    // Dos paneles (bloque J): editar selecciona la tarea
+                    // para el panel de detalle en vez de abrir el diálogo.
+                    onEdit = { onEditRequest?.invoke(it) ?: run { editingTask = it } },
                     onToggleReminder = { t ->
                         if (t.reminderAt == null) reminderTask = t
                         else onClearReminder(t)
@@ -187,65 +159,13 @@ fun TasksColumn(
         }
     }
 
-    reminderTask?.let { task ->
-        AnimatedVisibility(
-            visible = true,
-            enter = Motion.dialogEnter()
-        ) {
-            ReminderDialog(
-                onDismiss = { reminderTask = null },
-                onConfirm = { atMillis ->
-                    if (!isFutureInstant(atMillis)) {
-                        // Fecha pasada: avisar con un mensaje claro en vez de
-                        // descartar la elección en silencio.
-                        onPastReminder()
-                        reminderTask = null
-                        return@ReminderDialog
-                    }
-                    val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.POST_NOTIFICATIONS
-                        ) != PackageManager.PERMISSION_GRANTED
-                    if (needsPermission) {
-                        // Se guarda al conceder el permiso; si lo niega, no hay aviso posible.
-                        pendingReminder = task to atMillis
-                        reminderTask = null
-                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        // Tick de confirmación: el recordatorio quedó activo.
-                        Haptics.tick(haptics)
-                        confirmReminder(task, atMillis)
-                    }
-                }
-            )
-        }
-    }
-
-    if (showExactAlarmDialog) {
-        AnimatedVisibility(
-            visible = true,
-            enter = Motion.dialogEnter()
-        ) {
-            AlertDialog(
-                onDismissRequest = { showExactAlarmDialog = false },
-                title = { Text("Aviso a la hora exacta") },
-                text = {
-                    Text(
-                        "Para que el recordatorio suene justo a la hora que elegiste, " +
-                            "permite las alarmas exactas de Ahora en los ajustes del sistema."
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showExactAlarmDialog = false
-                        alarmScheduler.exactAlarmSettingsIntent()
-                            ?.let { context.startActivity(it) }
-                    }) { Text("Ir a ajustes") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showExactAlarmDialog = false }) { Text("Ahora no") }
-                }
-            )
-        }
-    }
+    // Flujo de recordatorio (diálogo + permiso + aviso de hora exacta):
+    // el mismo host que usa el panel de detalle en pantallas anchas.
+    ReminderFlowHost(
+        task = reminderTask,
+        onDismiss = { reminderTask = null },
+        onSetReminder = onSetReminder,
+        onPastReminder = onPastReminder,
+        alarmScheduler = alarmScheduler
+    )
 }
