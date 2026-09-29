@@ -6,9 +6,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.Manifest
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.ahora.app.MainActivity
 import com.ahora.app.R
 import com.ahora.app.data.Task
@@ -78,12 +81,32 @@ object NotificationHelper {
         manager.createNotificationChannel(channel)
     }
 
+    /**
+     * true si el sistema permite publicar notificaciones ahora mismo.
+     * En Android 13+ mira el permiso POST_NOTIFICATIONS; antes, el
+     * interruptor global de notificaciones de la app.
+     */
+    fun canPostNotifications(context: Context): Boolean {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            manager.areNotificationsEnabled()
+        }
+    }
+
     fun showReminder(
         context: Context,
         task: Task,
         withSound: Boolean,
         withVibration: Boolean
     ) {
+        // Sin permiso del sistema, notify() puede lanzar SecurityException
+        // (Android 13+): no hay nada que mostrar, salir sin tumbar el proceso.
+        if (!canPostNotifications(context)) return
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -122,6 +145,8 @@ object NotificationHelper {
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(task.id.toInt(), builder.build())
+        // El permiso pudo revocarse entre la comprobación y el aviso:
+        // nunca tumbar el proceso justo cuando debe sonar la alarma.
+        runCatching { manager.notify(task.id.toInt(), builder.build()) }
     }
 }

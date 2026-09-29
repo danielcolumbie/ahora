@@ -41,7 +41,14 @@ class ReminderScheduler(private val context: Context) {
     fun schedule(taskId: Long, atMillis: Long) {
         val pending = pendingIntent(taskId)
         if (hasExactAlarmPermission()) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            runCatching {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            }.onFailure {
+                // El permiso pudo revocarse entre la comprobación y la llamada
+                // (p. ej. al reprogramar tras el reinicio): degradar a alarma
+                // inexacta en vez de tumbar la app.
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            }
         } else {
             // Sin permiso de alarmas exactas (Android 12+): la mejor aproximación disponible.
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
