@@ -1269,3 +1269,23 @@ No asumas que algo está implementado solo porque aparece en README, roadmap o d
 Comprueba el código.
 
 Después comienza por la ETAPA 1.
+
+==================================================
+PLAN DE 14 ETAPAS — COMPLETADO (2026-09-29)
+==================================================
+
+La ETAPA 14 («Optimización y estabilización final») se implementó en la
+versión 1.13.0 (versionCode 15): auditoría de rendimiento (consultas Room,
+recomposiciones, hilo principal, tamaño del APK), auditoría de
+estabilidad (casos borde: BD corrupta declarado como pendiente,
+migraciones, widget sin datos, parser con entrada rara, alarmas tras
+reinicio verificadas), corrección del aviso de lint DataExtractionRules
+(49 → 48 avisos, 0 errores), 11 tests JVM nuevos (183 en total, todos
+verdes). Sin funciones nuevas, sin cambios de diseño, sin dependencias
+nuevas, sin reescribir nada.
+
+Detalle completo en MEJORAS.md, entrada «1.13.0 (2026-09-29)».
+
+De aquí en adelante: mejora diaria habitual (1–3 mejoras/día según el
+feedback de Daniel) y la fase post-etapa + rediseño premium ordenada
+por Daniel (ver docs/fase-post-etapa-rediseno-premium.md).

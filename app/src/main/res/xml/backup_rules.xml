@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Respaldo en la nube y transferencia entre dispositivos desactivados
+     para API 26–30: `android:dataExtractionRules` (ver
+     data_extraction_rules.xml) solo aplica desde API 31, así que en
+     versiones anteriores el sistema necesita también
+     `android:fullBackupContent`. Reglas vacías = no se incluye nada.
+     En la práctica `android:allowBackup="false"` ya bloquea todo en
+     todas las API; este archivo deja la intención explícita por si ese
+     atributo cambiara alguna vez. -->
+<full-backup-content />
