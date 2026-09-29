@@ -34,6 +34,17 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+
+### 1.7.0 (2026-09-29) — rediseño visual minimalista (ETAPA 8)
+- Nuevo sistema de espaciado (`ui/theme/Spacing`): toda la UI usa una escala única (2/4/8/12/16/20/24/32dp); se eliminaron los paddings arbitrarios. Test de invariantes `SpacingTest`.
+- Jerarquía tipográfica con roles fijos: marca "AHORA", títulos de pantalla, etiquetas de sección en mayúsculas ("HOY", "APARIENCIA"...), título de tarea (17sp, protagonista), texto secundario y acciones.
+- Paleta reducida: fondo, superficies, texto principal/secundario, acento azul (reservado para acciones y estados) y divisores sutiles (`outlineVariant`) en claro y oscuro.
+- Las tareas ya no van en tarjetas: filas limpias sobre el fondo, separadas por divisores finos. Sin sombras, sin neumorfismo, sin gradientes.
+- Pill de recordatorio neutra (antes teñida de azul en cada fila).
+- Barra de captura unificada en Hoy: escribir, dictar (micrófono con pulso mientras escucha) y enviar (botón circular de acento) en un solo campo sin bordes.
+- Transiciones entre pantallas centralizadas en `Motion` (antes valores sueltos en el navegador).
+- Ajustes reorganizados con encabezados de sección uniformes y divisores; filas táctiles más cómodas (48dp+).
+- Sin cambios de funcionalidad: todo lo que funcionaba sigue funcionando igual.
 ### 1.6.0 (2026-09-29) — optimización interna (ETAPA 7)
 - **Menos memoria**: saber si hay recordatorios pendientes ahora es una consulta `EXISTS` (un booleano) en vez de cargar todas las tareas en memoria solo para ver si la lista está vacía.
 - **Menos batería en la importación**: el respaldo entra a la base de datos en una sola transacción (lote), no con una transacción por tarea.

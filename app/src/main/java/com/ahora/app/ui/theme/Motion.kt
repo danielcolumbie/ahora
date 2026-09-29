@@ -1,6 +1,8 @@
 package com.ahora.app.ui.theme
 
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
@@ -9,7 +11,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 
 /**
  * La "física" de la app en un solo lugar: duraciones, retardos y springs
@@ -84,4 +89,29 @@ object Motion {
             delayMillis = delayMillis,
             easing = LinearEasing
         )
+
+    /** Duración de la entrada de pantalla (navegación entre Hoy/Todas/Ajustes). */
+    const val SCREEN_ENTER_MILLIS = 280
+
+    /** Duración de la salida de pantalla. */
+    const val SCREEN_EXIT_MILLIS = 240
+
+    /**
+     * Transición de entrada entre pantallas: fundido + deslizamiento corto.
+     * Comunica dirección: avanzar entra desde la derecha, volver desde la izquierda.
+     */
+    fun screenEnter(reverse: Boolean = false): EnterTransition =
+        fadeIn(
+            animationSpec = tween(SCREEN_ENTER_MILLIS, easing = FastOutSlowInEasing)
+        ) + slideInHorizontally(
+            animationSpec = tween(SCREEN_ENTER_MILLIS, easing = FastOutSlowInEasing)
+        ) { fullWidth -> if (reverse) -fullWidth / 6 else fullWidth / 6 }
+
+    /** Transición de salida entre pantallas. */
+    fun screenExit(reverse: Boolean = false): ExitTransition =
+        fadeOut(
+            animationSpec = tween(SCREEN_EXIT_MILLIS, easing = FastOutSlowInEasing)
+        ) + slideOutHorizontally(
+            animationSpec = tween(SCREEN_EXIT_MILLIS, easing = FastOutSlowInEasing)
+        ) { fullWidth -> if (reverse) fullWidth / 6 else -fullWidth / 6 }
 }

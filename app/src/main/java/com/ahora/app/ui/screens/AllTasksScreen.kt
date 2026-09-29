@@ -14,12 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.components.CollectUiEvents
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TasksColumn
+import com.ahora.app.ui.theme.Spacing
 
 /** Todas las tareas: pendientes primero, completadas al final. */
 @Composable
@@ -36,11 +36,11 @@ fun AllTasksScreen(viewModel: MainViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = Spacing.screenHorizontal)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xxl))
             Text(text = "Todas", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.s))
 
             if (tasks.isEmpty()) {
                 EmptyState(onAdd = {}, showAddButton = false, modifier = Modifier.weight(1f))

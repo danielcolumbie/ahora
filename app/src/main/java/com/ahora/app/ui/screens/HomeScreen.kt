@@ -4,11 +4,16 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -26,23 +31,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -70,6 +76,7 @@ import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TasksColumn
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /** Pantalla principal: capturar en segundos y ver lo de hoy. */
@@ -86,6 +93,7 @@ fun HomeScreen(viewModel: MainViewModel) {
     val speech = remember { app.container.createSpeechInputManager(context) }
     DisposableEffect(Unit) { onDispose { speech.release() } }
     val speechState by speech.state.collectAsStateWithLifecycle()
+    val listening = speechState is SpeechInputManager.State.Listening
 
     fun showMessage(text: String) {
         scope.launch { snackbarHostState.showSnackbar(text) }
@@ -108,7 +116,7 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 
     fun onMicClick() {
-        if (speechState is SpeechInputManager.State.Listening) {
+        if (listening) {
             speech.stopListening()
             return
         }
@@ -159,37 +167,42 @@ fun HomeScreen(viewModel: MainViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = Spacing.screenHorizontal)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xxl))
             Text(text = "AHORA", style = MaterialTheme.typography.displayLarge)
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = "Sácalo de tu cabeza.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xxl))
 
             // Aviso puntual si el sistema revocó el permiso de alarmas exactas:
-            // sin él, los recordatorios pueden llegar tarde. Una sola vía clara,
-            // descartable, que no insiste.
+            // sin él, los recordatorios pueden llegar tarde. Superficie neutra,
+            // una sola vía clara, descartable, que no insiste.
             val showNudge by viewModel.exactAlarmNudge.collectAsStateWithLifecycle()
             if (showNudge) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
+                Surface(
+                    shape = RoundedCornerShape(Spacing.l),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp)
+                        modifier = Modifier.padding(
+                            start = Spacing.l,
+                            top = Spacing.s,
+                            bottom = Spacing.s,
+                            end = Spacing.xs
+                        )
                     ) {
                         Text(
                             text = "Tus recordatorios podrían llegar tarde: " +
                                 "el permiso de alarmas exactas está desactivado.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(onClick = {
@@ -201,26 +214,77 @@ fun HomeScreen(viewModel: MainViewModel) {
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = "Descartar aviso",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.l))
             }
 
-            OutlinedTextField(
+            // Barra de captura: escribir, dictar o enviar desde un solo lugar.
+            // Sin bordes: la superficie la distingue del fondo con calma.
+            TextField(
                 value = input,
                 onValueChange = { input = it },
                 placeholder = { Text("¿Qué tienes en mente?") },
                 singleLine = true,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(Spacing.l),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
                 trailingIcon = {
-                    if (input.isNotBlank()) {
-                        IconButton(onClick = { submit() }) {
-                            Icon(Icons.Filled.Add, contentDescription = "Añadir tarea")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val pressed by interactionSource.collectIsPressedAsState()
+                        val micScale by animateFloatAsState(
+                            targetValue = if (pressed || listening) 1.15f else 1f,
+                            label = "micScale"
+                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            if (listening) {
+                                PulseRing(delayMillis = 0)
+                                PulseRing(delayMillis = Motion.PULSE_DURATION_MILLIS / 2)
+                            }
+                            IconButton(
+                                onClick = { onMicClick() },
+                                interactionSource = interactionSource,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = micScale
+                                    scaleY = micScale
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Mic,
+                                    contentDescription = "Dictar tarea",
+                                    tint = if (listening) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = input.isNotBlank(),
+                            enter = scaleIn(animationSpec = Motion.checkSpring()) + fadeIn(),
+                            exit = scaleOut() + fadeOut()
+                        ) {
+                            FilledIconButton(
+                                onClick = { submit() },
+                                modifier = Modifier
+                                    .padding(end = Spacing.xs)
+                                    .size(40.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.ArrowUpward,
+                                    contentDescription = "Añadir tarea"
+                                )
+                            }
                         }
                     }
                 },
@@ -228,45 +292,8 @@ fun HomeScreen(viewModel: MainViewModel) {
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Botón circular de micrófono: escala sutil al tocarlo y
-            // anillos pulsantes mientras escucha.
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                val interactionSource = remember { MutableInteractionSource() }
-                val pressed by interactionSource.collectIsPressedAsState()
-                val listening = speechState is SpeechInputManager.State.Listening
-                val scale by animateFloatAsState(
-                    targetValue = if (pressed || listening) 1.12f else 1f,
-                    label = "micScale"
-                )
-                if (listening) {
-                    PulseRing(delayMillis = 0)
-                    PulseRing(delayMillis = 800)
-                }
-                FilledIconButton(
-                    onClick = { onMicClick() },
-                    modifier = Modifier
-                        .size(72.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        },
-                    shape = CircleShape,
-                    interactionSource = interactionSource
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Mic,
-                        contentDescription = "Dictar tarea",
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-            }
-            if (speechState is SpeechInputManager.State.Listening) {
+            if (listening) {
+                Spacer(modifier = Modifier.height(Spacing.s))
                 Text(
                     text = "Escuchando…",
                     style = MaterialTheme.typography.labelLarge,
@@ -275,13 +302,13 @@ fun HomeScreen(viewModel: MainViewModel) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.xxl))
             Text(
                 text = "HOY",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.s))
 
             if (tasks.isEmpty()) {
                 EmptyState(
@@ -306,15 +333,15 @@ fun HomeScreen(viewModel: MainViewModel) {
 }
 
 /**
- * Anillo que se expande y se desvanece en bucle, detrás del botón de
- * micrófono, mientras la app está escuchando.
+ * Anillo que se expande y se desvanece en bucle detrás del micrófono
+ * mientras la app escucha.
  */
 @Composable
 private fun PulseRing(delayMillis: Int) {
     val infinite = rememberInfiniteTransition(label = "micPulse")
     val ringScale by infinite.animateFloat(
         initialValue = 1f,
-        targetValue = 1.55f,
+        targetValue = 1.6f,
         animationSpec = infiniteRepeatable<Float>(
             animation = Motion.pulseSpec(delayMillis),
             repeatMode = RepeatMode.Restart
@@ -332,7 +359,7 @@ private fun PulseRing(delayMillis: Int) {
     )
     Box(
         modifier = Modifier
-            .size(72.dp)
+            .size(40.dp)
             .graphicsLayer {
                 scaleX = ringScale
                 scaleY = ringScale
@@ -342,3 +369,4 @@ private fun PulseRing(delayMillis: Int) {
             .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
     )
 }
+

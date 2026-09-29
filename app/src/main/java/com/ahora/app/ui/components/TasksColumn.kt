@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,11 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
 import com.ahora.app.notifications.AlarmScheduler
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Spacing
 
 /**
  * Lista de tareas con los diálogos de editar y de recordatorio integrados.
@@ -92,8 +94,9 @@ fun TasksColumn(
 
     LazyColumn(
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(vertical = 4.dp),
+        // Sin tarjetas: las filas se separan con un divisor sutil.
+        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+        contentPadding = PaddingValues(vertical = Spacing.xs),
         modifier = modifier
     ) {
         itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
@@ -120,6 +123,9 @@ fun TasksColumn(
                         else onClearReminder(t)
                     }
                 )
+            }
+            if (index < tasks.lastIndex) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }

@@ -1,13 +1,5 @@
 package com.ahora.app.ui.navigation
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -33,6 +25,7 @@ import com.ahora.app.ui.screens.AllTasksScreen
 import com.ahora.app.ui.screens.HomeScreen
 import com.ahora.app.ui.settings.SettingsScreen
 import com.ahora.app.ui.settings.SettingsViewModel
+import com.ahora.app.ui.theme.Motion
 
 object Routes {
     const val HOY = "hoy"
@@ -51,19 +44,6 @@ private val destinations = listOf(
     Destination(Routes.TODAS, "Todas", Icons.AutoMirrored.Filled.List),
     Destination(Routes.AJUSTES, "Ajustes", Icons.Filled.Settings)
 )
-
-/** Transiciones suaves entre pantallas: fundido + deslizamiento corto. */
-private fun screenEnter(reverse: Boolean = false): EnterTransition =
-    fadeIn(animationSpec = tween(280, easing = FastOutSlowInEasing)) +
-        slideInHorizontally(
-            animationSpec = tween(280, easing = FastOutSlowInEasing)
-        ) { fullWidth -> if (reverse) -fullWidth / 6 else fullWidth / 6 }
-
-private fun screenExit(reverse: Boolean = false): ExitTransition =
-    fadeOut(animationSpec = tween(240, easing = FastOutSlowInEasing)) +
-        slideOutHorizontally(
-            animationSpec = tween(240, easing = FastOutSlowInEasing)
-        ) { fullWidth -> if (reverse) fullWidth / 6 else -fullWidth / 6 }
 
 /** Navegación mínima: Hoy, Todas y Ajustes. Nada más. */
 @Composable
@@ -104,24 +84,24 @@ fun NavGraph(
         ) {
             composable(
                 route = Routes.HOY,
-                enterTransition = { screenEnter() },
-                exitTransition = { screenExit() },
-                popEnterTransition = { screenEnter(reverse = true) },
-                popExitTransition = { screenExit(reverse = true) }
+                enterTransition = { Motion.screenEnter() },
+                exitTransition = { Motion.screenExit() },
+                popEnterTransition = { Motion.screenEnter(reverse = true) },
+                popExitTransition = { Motion.screenExit(reverse = true) }
             ) { HomeScreen(mainViewModel) }
             composable(
                 route = Routes.TODAS,
-                enterTransition = { screenEnter() },
-                exitTransition = { screenExit() },
-                popEnterTransition = { screenEnter(reverse = true) },
-                popExitTransition = { screenExit(reverse = true) }
+                enterTransition = { Motion.screenEnter() },
+                exitTransition = { Motion.screenExit() },
+                popEnterTransition = { Motion.screenEnter(reverse = true) },
+                popExitTransition = { Motion.screenExit(reverse = true) }
             ) { AllTasksScreen(mainViewModel) }
             composable(
                 route = Routes.AJUSTES,
-                enterTransition = { screenEnter() },
-                exitTransition = { screenExit() },
-                popEnterTransition = { screenEnter(reverse = true) },
-                popExitTransition = { screenExit(reverse = true) }
+                enterTransition = { Motion.screenEnter() },
+                exitTransition = { Motion.screenExit() },
+                popEnterTransition = { Motion.screenEnter(reverse = true) },
+                popExitTransition = { Motion.screenExit(reverse = true) }
             ) { SettingsScreen(settingsViewModel) }
         }
     }

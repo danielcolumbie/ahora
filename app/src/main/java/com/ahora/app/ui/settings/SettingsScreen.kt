@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -37,12 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
 import com.ahora.app.notifications.NotificationHelper
+import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /** Ajustes mínimos: apariencia, notificaciones, respaldo, acerca de y licencias. */
@@ -129,15 +130,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = Spacing.screenHorizontal)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
         Text(text = "Ajustes", style = MaterialTheme.typography.titleLarge)
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "Apariencia", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(Spacing.xxl))
+        SectionHeader("APARIENCIA")
+        Spacer(modifier = Modifier.height(Spacing.s))
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
             FilterChip(
                 selected = themeMode == ThemeMode.SYSTEM,
                 onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
@@ -155,37 +156,43 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
+        SectionHeader("NOTIFICACIONES")
+        Spacer(modifier = Modifier.height(Spacing.xs))
         SettingSwitchRow(
             title = "Notificaciones",
             subtitle = "Avisos de tus recordatorios",
             checked = notificationsEnabled,
             onCheckedChange = { toggleNotifications(it) }
         )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingLinkRow(
             title = "Sonido y vibración",
             subtitle = "Se configura en los ajustes del sistema",
             onClick = { openSystemChannelSettings() }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "Respaldo", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
+        SectionHeader("RESPALDO")
+        Spacer(modifier = Modifier.height(Spacing.xs))
         SettingLinkRow(
             title = "Exportar tareas",
             subtitle = "Guarda un respaldo en un archivo",
             onClick = { exportLauncher.launch("ahora-respaldo.json") }
         )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingLinkRow(
             title = "Importar tareas",
             subtitle = "Restaura desde un archivo de respaldo",
             onClick = { importLauncher.launch(arrayOf("application/json")) }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
+        SectionHeader("ACERCA DE")
+        Spacer(modifier = Modifier.height(Spacing.xs))
         TextButton(onClick = { showAbout = true }) { Text("Acerca de Ahora") }
         TextButton(onClick = { showLicenses = true }) { Text("Licencias de código abierto") }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
     }
 
     if (showAbout) {
@@ -234,6 +241,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     }
 }
 
+/** Etiqueta de sección en mayúsculas: el único estilo de "eyebrow" de la app. */
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
 @Composable
 private fun SettingLinkRow(
     title: String,
@@ -245,10 +262,11 @@ private fun SettingLinkRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 8.dp)
+            .padding(vertical = Spacing.m)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(Spacing.xxs))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
@@ -275,10 +293,11 @@ private fun SettingSwitchRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = Spacing.m)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(Spacing.xxs))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,

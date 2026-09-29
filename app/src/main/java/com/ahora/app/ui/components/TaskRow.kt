@@ -45,9 +45,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Spacing
 
 /**
- * Tarjeta de tarea: checkbox circular, texto, pill de recordatorio y acciones.
+ * Fila de tarea: checkbox circular, texto y acciones sobre el fondo.
+ *
+ * Sin tarjeta: el contenido es protagonista y las filas se separan con un
+ * divisor sutil (ver [TasksColumn]). La superficie solo aparece donde aporta
+ * jerarquía; aquí no aporta nada.
  *
  * Los callbacks reciben la tarea en vez de lambdas `() -> Unit` creadas por
  * fila: así son la misma instancia para todas las filas y Compose puede
@@ -73,51 +78,55 @@ fun TaskRow(
         MaterialTheme.typography.bodyLarge
     }
 
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .alpha(alpha)
+            .padding(vertical = Spacing.m)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+        CircularCheckButton(
+            checked = task.isDone,
+            onToggle = { onToggleDone(task) }
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = { onEdit(task) })
+                .padding(horizontal = Spacing.s)
         ) {
-            CircularCheckButton(
-                checked = task.isDone,
-                onToggle = { onToggleDone(task) }
+            Text(
+                text = task.title,
+                style = textStyle,
+                color = MaterialTheme.colorScheme.onBackground
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = { onEdit(task) })
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(text = task.title, style = textStyle)
-                task.reminderAt?.let { at ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    ReminderPill(label = formatReminderLabel(at))
-                }
+            task.reminderAt?.let { at ->
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                ReminderPill(label = formatReminderLabel(at))
             }
-            IconButton(onClick = { onToggleReminder(task) }) {
-                Icon(
-                    imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
-                    contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio"
-                )
-            }
-            IconButton(onClick = { onDelete(task) }) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Eliminar tarea"
-                )
-            }
+        }
+        IconButton(onClick = { onToggleReminder(task) }) {
+            Icon(
+                imageVector = if (task.reminderAt == null) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff,
+                contentDescription = if (task.reminderAt == null) "Añadir recordatorio" else "Quitar recordatorio",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = { onDelete(task) }) {
+            Icon(
+                imageVector = Icons.Outlined.Delete,
+                contentDescription = "Eliminar tarea",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
-/** Pill pequeña con campana para la etiqueta del recordatorio. */
+/**
+ * Pill pequeña con campana para la etiqueta del recordatorio.
+ * Neutra a propósito: el acento se reserva para acciones y estados,
+ * no para metadatos que aparecen en cada fila.
+ */
 @Composable
 private fun ReminderPill(
     label: String,
@@ -125,20 +134,20 @@ private fun ReminderPill(
 ) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-        contentColor = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = Spacing.s, vertical = Spacing.xs)
         ) {
             Icon(
                 imageVector = Icons.Outlined.Notifications,
                 contentDescription = null,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(Spacing.m)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall
@@ -150,6 +159,7 @@ private fun ReminderPill(
 /**
  * Botón circular de completado, con semántica de checkbox para accesibilidad.
  * Al marcar/desmarcar, el círculo rebota con un spring y el check entra con escala.
+ * El acento aquí sí comunica: es el estado de la tarea.
  */
 @Composable
 private fun CircularCheckButton(
@@ -176,7 +186,7 @@ private fun CircularCheckButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(44.dp)
+            .size(Spacing.minTouchRow)
             .clip(CircleShape)
             .toggleable(
                 value = checked,

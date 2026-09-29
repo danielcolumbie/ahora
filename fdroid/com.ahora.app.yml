@@ -31,9 +31,9 @@ RepoType: git
 Repo: https://github.com/danielcolumbie/ahora.git
 
 Builds:
-  - versionName: 1.6.0
-    versionCode: 8
-    commit: v1.6.0
+  - versionName: 1.7.0
+    versionCode: 9
+    commit: v1.7.0
     gradle:
       - yes
 

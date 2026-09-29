@@ -19,8 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Spacing
 
 /** Estado vacío con jerarquía tipográfica cuidada; entra con un fundido suave. */
 @Composable
@@ -42,7 +42,7 @@ fun EmptyState(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 40.dp)
+                .padding(horizontal = Spacing.xxl)
         ) {
             Text(
                 text = "Todo despejado.",
@@ -50,7 +50,7 @@ fun EmptyState(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.m))
             Text(
                 text = "Disfruta el momento.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -58,7 +58,7 @@ fun EmptyState(
                 textAlign = TextAlign.Center
             )
             if (showAddButton) {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(Spacing.xxxl))
                 Button(onClick = onAdd) {
                     Text("Añadir tarea")
                 }
