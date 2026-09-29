@@ -31,3 +31,11 @@ val DarkDivider = Color(0x1AF5F3EE)
 // donde comunica un problema real.
 val LightError = Color(0xFFB3261E)
 val DarkError = Color(0xFFF2B8B5)
+
+// Contenedor del acento: la superficie que comunica "seleccionado"
+// (indicador de la barra de navegación, bloque E). Un solo acento
+// también aquí: el color comunica estado, no decora.
+val LightPrimaryContainer = Color(0xFFDCE6FF)
+val LightOnPrimaryContainer = Color(0xFF0B2A6B)
+val DarkPrimaryContainer = Color(0xFF2A4A8F)
+val DarkOnPrimaryContainer = Color(0xFFDCE6FF)

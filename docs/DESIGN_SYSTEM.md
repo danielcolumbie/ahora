@@ -11,15 +11,17 @@ Un solo acento. El color comunica estado, no decora.
 
 | Token (M3) | Claro | Oscuro | Rol |
 |---|---|---|---|
-| `primary` | `#2E6BE6` azul eléctrico | `#7DA6FF` | Acciones, checkbox marcado, marca |
-| `onPrimary` | `#FFFFFF` | `#0B1526` | Sobre el acento |
-| `primaryContainer` / `onPrimaryContainer` | `#DCE6FF` / `#0B2A6B` | `#2A4A8F` / `#DCE6FF` | Chips seleccionados |
-| `background` / `onBackground` | `#F7F7F5` / `#171714` | `#121210` / `#F3EBDD` | Fondo y texto protagonista |
-| `surface` / `onSurface` | `#FFFFFF` / `#171714` | `#1C1C19` / `#F3EBDD` | Superficies (diálogos, barra) |
-| `surfaceVariant` / `onSurfaceVariant` | `#E8E6E1` / `#55534E` | `#2A2925` / `#A8A49B` | Pills neutras, metadatos |
-| `outline` | `#C9C6BF` | `#3A3934` | Bordes |
-| `outlineVariant` | `#E3E1DB` | `#26251F` | Divisores sutiles entre filas |
-| `error` / `onError` | `#C62828` / `#FFFFFF` | `#FF8A80` / `#3D0A0A` | Solo: prioridad alta y fecha vencida |
+| `primary` | `#3D7BFF` azul eléctrico | `#5B93FF` | Acciones, checkbox marcado, marca |
+| `onPrimary` | `#F6F4EE` | `#F5F3EE` | Sobre el acento |
+| `primaryContainer` / `onPrimaryContainer` | `#DCE6FF` / `#0B2A6B` | `#2A4A8F` / `#DCE6FF` | Superficie de «seleccionado» (implementado en 1.18.0; primer uso: indicador de navegación) |
+| `background` / `onBackground` | `#F6F4EE` / `#171714` | `#0B0B0D` / `#F5F3EE` | Fondo y texto protagonista |
+| `surface` / `onSurface` | `#FFFFFF` / `#171714` | `#141417` / `#F5F3EE` | Superficies (diálogos, barra) |
+| `surfaceVariant` / `onSurfaceVariant` | `#EDEAE2` / `#6E6C66` | `#1D1D22` / `#A8A6A0` | Pills neutras, metadatos |
+| `outlineVariant` | tinta al 8% (`#14171714`) | papel al 10% (`#1AF5F3EE`) | Divisores sutiles entre filas |
+| `error` / `onError` | `#B3261E` | `#F2B8B5` | Solo: prioridad alta y fecha vencida |
+
+Nota: los tokens no listados usan el default de Material 3 (p. ej. `outline`,
+`onError`, `secondaryContainer`).
 
 Reglas:
 - Las pills de metadatos son **neutras** (`surfaceVariant` + `onSurfaceVariant`).
@@ -103,6 +105,13 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   recordatorio: una sola jerarquía en todos los diálogos.
 - **Ajustes:** secciones con `titleMedium` en mayúsculas; filas reutilizables
   (objetivo del rediseño: componente `SettingRow`).
+- **Barra de navegación (1.18.0):** 3 destinos (Hoy / Todas / Ajustes),
+  `NavigationBar` de M3 sin cambiar el patrón. Selección = indicador
+  `primaryContainer` + icono relleno (`onPrimaryContainer`); sin seleccionar =
+  icono outlined + `onSurfaceVariant`. Etiquetas neutras (`onSurface` /
+  `onSurfaceVariant`): el color comunica solo la selección. `singleTop` +
+  `saveState`/`restoreState` conservan el scroll y el estado de cada pestaña;
+  transiciones desde `Motion` (entrada 280ms / salida 240ms).
 
 ## 6. Movimiento (`Motion`)
 
