@@ -34,6 +34,10 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+### 1.2.1 (2026-09-29) — ajustes honestos (A1)
+- Decisión de producto de Daniel: se eliminan los interruptores de Sonido y Vibración de Ajustes (Android no permite cambiarlos en un canal ya creado, así que prometían algo falso).
+- En su lugar, la fila "Sonido y vibración" abre los ajustes de notificación del sistema para el canal de la app, que sí puede cambiarlos (con fallback a los ajustes generales de notificaciones).
+- Limpieza de código muerto: `NotificationHelper.applyPreferences()` y todo el plumbing de preferencias de sonido/vibración (`SettingsRepository`, `SettingsViewModel`, parámetros de `showReminder`). Se conserva el interruptor maestro de notificaciones, que sí es real.
 ### 1.2.0 (2026-09-29) — estabilidad (ETAPA 2)
 - CRÍTICO: los recordatorios ya se programan en el día local correcto. Antes, en Cuba (y otras zonas al oeste de UTC), elegir una fecha la programaba el día anterior. Pruebas unitarias deterministas para `America/Havana` y `Asia/Tokyo`.
 - La app ya no se cae al mostrar una notificación si el permiso fue revocado: comprueba `POST_NOTIFICATIONS` / `areNotificationsEnabled()` y protege `notify()`.

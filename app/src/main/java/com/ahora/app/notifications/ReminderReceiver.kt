@@ -30,12 +30,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 // Solo avisa si la tarea sigue pendiente y el recordatorio sigue vigente.
                 if (task.isDone || task.reminderAt == null) return@launch
 
-                NotificationHelper.showReminder(
-                    context = context,
-                    task = task,
-                    withSound = container.settingsRepository.notificationSound.first(),
-                    withVibration = container.settingsRepository.vibration.first()
-                )
+                NotificationHelper.showReminder(context = context, task = task)
 
                 // El recordatorio ya sonó: limpia el campo para que el pill
                 // no quede obsoleto para siempre. Solo si el recordatorio

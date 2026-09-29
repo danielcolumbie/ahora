@@ -19,26 +19,12 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
     val notificationsEnabled: StateFlow<Boolean> = settings.notificationsEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
-    val notificationSound: StateFlow<Boolean> = settings.notificationSound
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    val vibration: StateFlow<Boolean> = settings.vibration
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
     fun setThemeMode(mode: Int) = viewModelScope.launch {
         settings.setThemeMode(mode)
     }
 
     fun setNotificationsEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setNotificationsEnabled(enabled)
-    }
-
-    fun setNotificationSound(enabled: Boolean) = viewModelScope.launch {
-        settings.setNotificationSound(enabled)
-    }
-
-    fun setVibration(enabled: Boolean) = viewModelScope.launch {
-        settings.setVibration(enabled)
     }
 }
 

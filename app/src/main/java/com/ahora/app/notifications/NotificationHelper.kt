@@ -23,8 +23,9 @@ import com.ahora.app.data.Task
  * - Icono propio de campana para la barra de estado (el icono del launcher
  *   ahí se ve tenue o invisible).
  * - En Android 8+ el sonido y la vibración los gobierna el CANAL, no el
- *   builder: el canal se crea con ambos explícitos y los ajustes de la app
- *   se aplican al canal con [applyPreferences].
+ *   builder: el canal se crea con ambos explícitos. Android no permite
+ *   cambiarlos desde la app una vez creado el canal, así que la pantalla
+ *   de Ajustes enlaza a los ajustes del sistema.
  * - Se usa un canal nuevo ("_v2") porque Android no deja cambiar la
  *   configuración de un canal ya creado.
  */
@@ -61,27 +62,6 @@ object NotificationHelper {
     }
 
     /**
-     * Aplica los ajustes de sonido/vibración de la app al canal del sistema.
-     * Sin esto, en Android 8+ los interruptores de Ajustes no tendrían
-     * efecto real porque el canal manda sobre el builder.
-     */
-    fun applyPreferences(context: Context, withSound: Boolean, withVibration: Boolean) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = manager.getNotificationChannel(CHANNEL_ID) ?: return
-        if (withSound) {
-            channel.setSound(
-                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-                null
-            )
-        } else {
-            channel.setSound(null, null)
-        }
-        channel.enableVibration(withVibration)
-        manager.createNotificationChannel(channel)
-    }
-
-    /**
      * true si el sistema permite publicar notificaciones ahora mismo.
      * En Android 13+ mira el permiso POST_NOTIFICATIONS; antes, el
      * interruptor global de notificaciones de la app.
@@ -98,12 +78,7 @@ object NotificationHelper {
         }
     }
 
-    fun showReminder(
-        context: Context,
-        task: Task,
-        withSound: Boolean,
-        withVibration: Boolean
-    ) {
+    fun showReminder(context: Context, task: Task) {
         // Sin permiso del sistema, notify() puede lanzar SecurityException
         // (Android 13+): no hay nada que mostrar, salir sin tumbar el proceso.
         if (!canPostNotifications(context)) return
@@ -134,15 +109,8 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setContentIntent(tapPending)
 
-        // En Android 8+ el canal gobierna; esto cubre Android 7 y anteriores.
-        if (withSound) {
-            builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-        } else {
-            builder.setSilent(true)
-        }
-        if (withVibration) {
-            builder.setVibrate(longArrayOf(0, 400, 200, 400))
-        }
+        // En Android 8+ (minSdk 26) el canal gobierna el sonido y la
+        // vibración: no se tocan en el builder porque el sistema los ignora.
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // El permiso pudo revocarse entre la comprobación y el aviso:

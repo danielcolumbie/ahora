@@ -25,8 +25,6 @@ class SettingsRepository(private val context: Context) {
 
     private val themeModeKey = intPreferencesKey("theme_mode")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
-    private val notificationSoundKey = booleanPreferencesKey("notification_sound")
-    private val vibrationKey = booleanPreferencesKey("vibration")
 
     val themeMode: Flow<Int> =
         context.dataStore.data.map { it[themeModeKey] ?: ThemeMode.SYSTEM }
@@ -34,25 +32,11 @@ class SettingsRepository(private val context: Context) {
     val notificationsEnabled: Flow<Boolean> =
         context.dataStore.data.map { it[notificationsEnabledKey] ?: true }
 
-    val notificationSound: Flow<Boolean> =
-        context.dataStore.data.map { it[notificationSoundKey] ?: true }
-
-    val vibration: Flow<Boolean> =
-        context.dataStore.data.map { it[vibrationKey] ?: true }
-
     suspend fun setThemeMode(mode: Int) {
         context.dataStore.edit { it[themeModeKey] = mode }
     }
 
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[notificationsEnabledKey] = enabled }
-    }
-
-    suspend fun setNotificationSound(enabled: Boolean) {
-        context.dataStore.edit { it[notificationSoundKey] = enabled }
-    }
-
-    suspend fun setVibration(enabled: Boolean) {
-        context.dataStore.edit { it[vibrationKey] = enabled }
     }
 }
