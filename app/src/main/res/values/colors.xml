@@ -3,13 +3,16 @@
     <color name="window_background">#0B0B0D</color>
     <color name="ic_launcher_background">#0B0B0D</color>
     <!-- Acento de las notificaciones (azul eléctrico de la marca). -->
-    <color name="notif_accent">#FF3D7BFF</color>
+    <color name="notif_accent">#FF2F63E4</color>
     <!-- Widget (ETAPA 12): sigue la paleta de la app. En modo claro, fondo
          blanco y tinta oscura. -->
     <color name="widget_surface">#FFFFFFFF</color>
     <color name="widget_text">#FF171714</color>
-    <color name="widget_text_secondary">#FF6E6C66</color>
-    <color name="widget_accent">#FF3D7BFF</color>
+    <!-- Bloque G (1.20.0): sigue a LightOnSurfaceVariant del tema
+         (antes #FF6E6C66; el texto de pills/metadatos quedaba bajo AA). -->
+    <color name="widget_text_secondary">#FF625F58</color>
+    <!-- Bloque G (1.20.0): sigue al primario claro del tema. -->
+    <color name="widget_accent">#FF2F63E4</color>
     <color name="widget_danger">#FFB3261E</color>
     <color name="widget_divider">#14171714</color>
 </resources>

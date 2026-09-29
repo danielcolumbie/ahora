@@ -11,12 +11,12 @@ Un solo acento. El color comunica estado, no decora.
 
 | Token (M3) | Claro | Oscuro | Rol |
 |---|---|---|---|
-| `primary` | `#3D7BFF` azul eléctrico | `#5B93FF` | Acciones, checkbox marcado, marca |
+| `primary` | `#2F63E4` azul eléctrico | `#5B93FF` | Acciones, checkbox marcado, marca |
 | `onPrimary` | `#F6F4EE` | `#F5F3EE` | Sobre el acento |
 | `primaryContainer` / `onPrimaryContainer` | `#DCE6FF` / `#0B2A6B` | `#2A4A8F` / `#DCE6FF` | Superficie de «seleccionado» (implementado en 1.18.0; primer uso: indicador de navegación) |
 | `background` / `onBackground` | `#F6F4EE` / `#171714` | `#0B0B0D` / `#F5F3EE` | Fondo y texto protagonista |
 | `surface` / `onSurface` | `#FFFFFF` / `#171714` | `#141417` / `#F5F3EE` | Superficies (diálogos, barra) |
-| `surfaceVariant` / `onSurfaceVariant` | `#EDEAE2` / `#6E6C66` | `#1D1D22` / `#A8A6A0` | Pills neutras, metadatos |
+| `surfaceVariant` / `onSurfaceVariant` | `#EDEAE2` / `#625F58` | `#1D1D22` / `#A8A6A0` | Pills neutras, metadatos |
 | `outlineVariant` | tinta al 8% (`#14171714`) | papel al 10% (`#1AF5F3EE`) | Divisores sutiles entre filas |
 | `error` / `onError` | `#B3261E` | `#F2B8B5` | Solo: prioridad alta y fecha vencida |
 
@@ -29,6 +29,11 @@ Reglas:
 - La prioridad MEDIA no lleva color propio: es neutra como las demás.
 - No usar `tertiary` (no está definido en el tema; caía al default de M3).
 - Dark mode es una paleta propia, no una inversión.
+- El widget (`res/values/colors.xml` + `values-night/colors.xml`) usa los
+  mismos hex de la paleta de forma explícita — RemoteViews no lee el tema
+  Compose —: superficie, texto, texto secundario, acento, peligro y
+  divisor, en claro y en oscuro. Si la paleta cambia, hay que actualizarlo
+  a mano (verificado en el bloque G, 1.20.0).
 
 ## 2. Tipografía (`AhoraTypography`)
 
@@ -94,8 +99,10 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   botón primario. Entra con fundido suave.
 - **Etiqueta de sección con contador:** la etiqueta (`titleMedium` en
   mayúsculas) puede llevar un contador discreto a su derecha
-  (`titleMedium`, `onSurfaceVariant` al 65%): informa la cantidad sin
+  (`titleMedium`, `onSurfaceVariant` al 90%): informa la cantidad sin
   añadir ruido. Se usa en la sección «HOY» de la pantalla principal.
+  (Bloque G: antes al 65%, que en oscuro daba 3.97:1 — bajo AA. Al 90%:
+  6.65:1 en oscuro, 4.62:1 en claro.)
 - **Diálogos:** `TaskFormFields` compartido (crear = editar); secciones del
   sistema con `Spacing.l` entre ellas («Prioridad», «Fecha límite»,
   «Recurrencia»). El diálogo de recordatorio es una sola pantalla con el
@@ -163,8 +170,14 @@ sistema (`Sizes`, `Spacing`).
 - Área táctil mínima 48dp en filas y controles.
 - `contentDescription` en todo icono con acción; `Role.Checkbox` en el
   círculo personalizado.
-- Contraste AA en ambas paletas (auditar `onSurfaceVariant` y divisores en
-  dark en un dispositivo real).
+- Contraste AA en ambas paletas, verificado por cálculo sobre los hex de
+  los tokens y fijado por el test `ColorContrastTest` (227 tests JVM):
+  ratios clave en oscuro — `onSurfaceVariant`/fondo 8.08:1, texto de
+  pill/fondo de pill 6.90:1, contador (90%) 6.65:1, error/pill 9.83:1,
+  primario/fondo 6.61:1; en claro — `onSurfaceVariant`/fondo 5.79:1,
+  texto de pill/fondo de pill 5.30:1, contador (90%) 4.62:1, error/pill
+  5.44:1, primario/fondo 4.74:1. Los divisores (`outlineVariant`) son
+  decorativos: se fija que sigan sutiles (< 2.0:1), no AA.
 - La UI no depende solo del color: la prioridad alta lleva icono + texto,
   la fecha vencida lleva texto («Ayer», «hace 2 días»).
 

@@ -3,7 +3,11 @@ package com.ahora.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Azul eléctrico: el único acento de color. Se usa con moderación.
-val ElectricBlue = Color(0xFF3D7BFF)
+// Bloque G (dark mode, 1.20.0): en claro pasó de #3D7BFF a #2F63E4. El
+// anterior daba 3.49:1 con el papel encima (texto del botón «Añadir tarea»
+// y «Escuchando…» bajo AA); con #2F63E4 da 4.74:1. Mismo tono eléctrico,
+// un paso más profundo. En oscuro se conserva #5B93FF (6.61:1).
+val ElectricBlue = Color(0xFF2F63E4)
 val ElectricBlueDark = Color(0xFF5B93FF)
 
 // Modo oscuro (apariencia principal): negro casi puro, superficies apenas más claras.
@@ -20,7 +24,11 @@ val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFEDEAE2)
 val LightOnBackground = Color(0xFF171714)
 val LightOnSurface = Color(0xFF171714)
-val LightOnSurfaceVariant = Color(0xFF6E6C66)
+// Bloque G (dark mode, 1.20.0): antes #6E6C66; el texto de las pills
+// (surfaceVariant #EDEAE2) daba 4.37:1 y quedaba por debajo de AA. Con
+// #625F58 da 5.30:1 sobre la pill y 5.79:1 sobre el fondo. Sigue siendo
+// el mismo gris cálido, solo un paso más oscuro.
+val LightOnSurfaceVariant = Color(0xFF625F58)
 
 // Divisores sutiles: separan sin encerrar. En claro, tinta al 8%;
 // en oscuro, papel al 10%. No son "bordes", son aire estructurado.

@@ -403,7 +403,13 @@ fun HomeScreen(viewModel: MainViewModel) {
                     Text(
                         text = tasks.size.toString(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        // Contador discreto de la etiqueta de sección (bloque B): informa sin
+// ruido. Bloque G (1.20.0): 0.65f -> 0.90f. En oscuro, onSurfaceVariant al
+// 65% daba 3.97:1 sobre el fondo (bajo AA); al 90% da 6.65:1. En claro,
+// con el nuevo onSurfaceVariant (#625F58), al 90% da 4.62:1. Sigue siendo
+// discreto frente a la etiqueta a plena opacidad, pero legible en ambas
+// paletas (fijado por ColorContrastTest).
+color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
                     )
                 }
             }
