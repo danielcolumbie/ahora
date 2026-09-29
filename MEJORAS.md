@@ -35,6 +35,11 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Changelog
 
+### 1.14.0 (2026-09-29) — rediseño premium, bloque A: design system
+- **Nueva fase post-etapa arrancada por orden de Daniel.** Verificación completa del estado real (FASE 0) en `docs/informe-post-etapa.md`: build debug+release OK, 183/183 tests verdes, lint sin errores, sin regresiones críticas. Auditoría visual en `docs/auditoria-visual.md` y sistema de diseño en `docs/DESIGN_SYSTEM.md`.
+- **Cambios (solo tokens del sistema, sin rediseño visual visible todavía):** nuevo objeto `Sizes` con las dimensiones de componentes (antes había `dp` sueltos en `TaskRow`); `labelSmall` (12sp) añadido a `AhoraTypography` (las pills usaban el default de M3); la prioridad media vuelve a pill neutra (ya no depende de `tertiary` sin definir); `EmptyState` usa `titleLarge` propio en vez de `headlineSmall` genérico; el spring del checkbox pierde el rebote (`dampingRatio 0.8`).
+- 3 tests nuevos (`DesignSystemTest`): 186/186 verdes. `assembleDebug` + `lintDebug` OK.
+
 ### 1.13.0 (2026-09-29) — optimización y estabilización final (ETAPA 14)
 - **ETAPA 14 del plan maestro: COMPLETADA. El plan de 14 etapas queda cerrado.** Esta etapa fue de auditoría y pulido: sin funciones nuevas, sin cambios de diseño, sin dependencias nuevas, sin reescribir nada.
 - **Qué se auditó y qué se encontró:**

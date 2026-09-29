@@ -67,16 +67,14 @@ object Motion {
             slideInVertically(animationSpec = tween(durationMillis = duration)) { it / 8 }
     }
 
-    /** Rebote del círculo de completado al marcar/desmarcar. */
-    fun <T> bouncySpring(): SpringSpec<T> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
-
-    /** Entrada del check dentro del círculo. */
+    /**
+     * Spring del círculo de completado al marcar/desmarcar: suave, sin
+     * rebote exagerado (dampingRatio 0.8). El rediseño premium eliminó el
+     * spring con rebote que había antes.
+     */
     fun <T> checkSpring(): SpringSpec<T> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMedium
+        dampingRatio = 0.8f,
+        stiffness = Spring.StiffnessMediumLow
     )
 
     /** Duración del pulso del micrófono mientras escucha. */

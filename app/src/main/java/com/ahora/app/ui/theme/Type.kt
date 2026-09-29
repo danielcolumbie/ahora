@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
  * - [Typography.bodyLarge]: título de la tarea (el contenido protagonista).
  * - [Typography.bodyMedium]: información secundaria (subtítulos, descripciones).
  * - [Typography.labelLarge]: acciones y botones.
+ * - [Typography.labelSmall]: metadatos pequeños (texto dentro de las pills).
  *
  * Tipografía limpia del sistema, sin fuentes externas.
  */
@@ -55,5 +56,10 @@ val AhoraTypography = Typography(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp
     )
 )

@@ -49,11 +49,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
 
 /**
@@ -181,7 +181,7 @@ private fun MetaPill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(Spacing.m)
+                modifier = Modifier.size(Sizes.pillIcon)
             )
             Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
@@ -197,12 +197,11 @@ private fun ReminderPill(label: String) {
     MetaPill(icon = Icons.Outlined.Notifications, label = label)
 }
 
-/** Bandera con la prioridad. Solo Alta usa el color de error. */
+/** Bandera con la prioridad. Solo Alta usa el color de error; el resto es neutro. */
 @Composable
 private fun PriorityPill(priority: TaskPriority) {
     val color = when (priority) {
         TaskPriority.HIGH -> MaterialTheme.colorScheme.error
-        TaskPriority.MEDIUM -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     MetaPill(
@@ -251,16 +250,16 @@ private fun CircularCheckButton(
         else Color.Transparent,
         label = "checkBackground"
     )
-    // Rebote sutil del círculo al cambiar de estado.
+    // Crecimiento sutil del círculo al cambiar de estado (sin rebote).
     val circleSize by animateDpAsState(
-        targetValue = if (checked) 27.dp else 24.dp,
-        animationSpec = Motion.bouncySpring(),
+        targetValue = if (checked) Sizes.checkCircleChecked else Sizes.checkCircle,
+        animationSpec = Motion.checkSpring(),
         label = "checkCircleSize"
     )
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(Spacing.minTouchRow)
+            .size(Sizes.minTouchRow)
             .clip(CircleShape)
             .toggleable(
                 value = checked,
@@ -274,7 +273,7 @@ private fun CircularCheckButton(
                 .size(circleSize)
                 .clip(CircleShape)
                 .background(background)
-                .border(2.dp, borderColor, CircleShape)
+                .border(Sizes.checkStroke, borderColor, CircleShape)
         ) {
             AnimatedVisibility(
                 visible = checked,
@@ -285,7 +284,7 @@ private fun CircularCheckButton(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier.size(Sizes.checkIcon)
                 )
             }
         }
