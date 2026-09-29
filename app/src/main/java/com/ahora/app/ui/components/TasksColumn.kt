@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.notifications.AlarmScheduler
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
@@ -49,7 +50,7 @@ fun TasksColumn(
     tasks: List<Task>,
     onToggleDone: (Task) -> Unit,
     onDelete: (Task) -> Unit,
-    onUpdateTitle: (Task, String) -> Unit,
+    onUpdateDetails: (Task, String, TaskPriority, Long?) -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
@@ -133,9 +134,11 @@ fun TasksColumn(
     editingTask?.let { task ->
         EditTaskDialog(
             initialText = task.title,
+            initialPriority = TaskPriority.fromLevel(task.priority),
+            initialDueAt = task.dueAt,
             onDismiss = { editingTask = null },
-            onConfirm = {
-                onUpdateTitle(task, it)
+            onConfirm = { title, priority, dueAt ->
+                onUpdateDetails(task, title, priority, dueAt)
                 editingTask = null
             }
         )

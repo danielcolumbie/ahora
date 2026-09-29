@@ -124,7 +124,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     tasks = tasks,
                     onToggleDone = viewModel::toggleDone,
                     onDelete = viewModel::deleteTask,
-                    onUpdateTitle = viewModel::updateTitle,
+                    onUpdateDetails = viewModel::updateDetails,
                     onSetReminder = viewModel::setReminder,
                     onClearReminder = viewModel::clearReminder,
                     onPastReminder = viewModel::pastReminderSelected,

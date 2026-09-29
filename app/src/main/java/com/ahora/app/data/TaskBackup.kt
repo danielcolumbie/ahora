@@ -47,6 +47,11 @@ object TaskBackup {
         .put("isDone", task.isDone)
         .put("doneAt", task.doneAt ?: JSONObject.NULL)
         .put("recurrence", task.recurrence ?: JSONObject.NULL)
+        // ETAPA 10: prioridad y fecha límite. Se siguen leyendo con `opt`
+        // para que los respaldos hechos antes de la 1.9.0 (sin estos campos)
+        // se importen sin errores, con valores por defecto.
+        .put("priority", task.priority)
+        .put("dueAt", task.dueAt ?: JSONObject.NULL)
 
     /**
      * Lee un respaldo. Lanza [BackupFormatException] si el archivo no es
@@ -89,7 +94,9 @@ object TaskBackup {
             reminderAt = obj.optLong("reminderAt", -1).takeIf { it > 0 },
             isDone = obj.optBoolean("isDone", false),
             doneAt = obj.optLong("doneAt", -1).takeIf { it > 0 },
-            recurrence = obj.optString("recurrence").ifBlank { null }
+            recurrence = obj.optString("recurrence").ifBlank { null },
+            priority = TaskPriority.fromLevel(obj.optInt("priority", 0)).level,
+            dueAt = obj.optLong("dueAt", -1).takeIf { it > 0 }
         )
     }
 }

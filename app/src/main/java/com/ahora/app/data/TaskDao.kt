@@ -9,10 +9,16 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
 
-    @Query("SELECT * FROM tasks ORDER BY isDone ASC, createdAt DESC")
+    /**
+     * Orden de la lista (ver [TaskListComparator], que lo replica en Kotlin
+     * puro para los tests JVM): pendientes primero, luego mayor prioridad,
+     * luego fecha límite más cercana (sin fecha al final) y desempate por
+     * creación reciente.
+     */
+    @Query("SELECT * FROM tasks ORDER BY isDone ASC, priority DESC, (dueAt IS NULL), dueAt ASC, createdAt DESC")
     fun observeAll(): Flow<List<Task>>
 
-    @Query("SELECT * FROM tasks WHERE isDone = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE isDone = 0 ORDER BY priority DESC, (dueAt IS NULL), dueAt ASC, createdAt DESC")
     fun observePending(): Flow<List<Task>>
 
     /**
@@ -20,7 +26,7 @@ interface TaskDao {
      * [buildSearchPattern] (`%`, `_` y `\` son literales, no comodines).
      * El orden es el mismo que [observeAll]: pendientes primero.
      */
-    @Query("SELECT * FROM tasks WHERE title LIKE :pattern ESCAPE '\\' ORDER BY isDone ASC, createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE title LIKE :pattern ESCAPE '\\' ORDER BY isDone ASC, priority DESC, (dueAt IS NULL), dueAt ASC, createdAt DESC")
     fun search(pattern: String): Flow<List<Task>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

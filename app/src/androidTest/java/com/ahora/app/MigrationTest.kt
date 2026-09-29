@@ -4,6 +4,9 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ahora.app.data.AhoraDatabase
+import com.ahora.app.data.MIGRATION_1_2
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,5 +64,34 @@ class MigrationTest {
         // La reabre y la valida contra el schema exportado: si el schema
         // generado no coincide con la v1 real, esto falla.
         helper.runMigrationsAndValidate(TEST_DB, 1, true).close()
+    }
+
+    /**
+     * Migración 1 → 2 (ETAPA 10): las tareas existentes conservan sus datos
+     * y las columnas nuevas llegan con sus valores por defecto
+     * (prioridad 0 = sin prioridad, sin fecha límite).
+     *
+     * Test de instrumentación: necesita dispositivo o emulador
+     * (`connectedAndroidTest`). No corre en JVM.
+     */
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2_conservaDatosYValoresPorDefecto() {
+        helper.createDatabase(TEST_DB, 1).apply {
+            execSQL(
+                "INSERT INTO tasks (title, createdAt, reminderAt, isDone, doneAt, recurrence) " +
+                    "VALUES ('Tarea vieja', 1000, NULL, 0, NULL, NULL)"
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(TEST_DB, 2, true, MIGRATION_1_2).apply {
+            query("SELECT title, priority, dueAt FROM tasks").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Tarea vieja", cursor.getString(0))
+                assertEquals(0, cursor.getInt(1))
+                assertTrue(cursor.isNull(2))
+            }
+            close()
+        }
     }
 }

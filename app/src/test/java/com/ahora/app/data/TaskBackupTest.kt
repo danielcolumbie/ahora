@@ -46,6 +46,30 @@ class TaskBackupTest {
         assertNull(task.reminderAt)
         assertNull(task.doneAt)
         assertNull(task.recurrence)
+        assertEquals(0, task.priority)
+        assertNull(task.dueAt)
+    }
+
+    @Test fun `round trip conserva prioridad y fecha limite`() {
+        val original = listOf(
+            Task(id = 1, title = "Urgente", priority = 3, dueAt = 1_700_086_400_000),
+            Task(id = 2, title = "Normal", priority = 1, dueAt = null)
+        )
+        val parsed = TaskBackup.tasksFromJson(TaskBackup.tasksToJson(original))
+        assertEquals(0, parsed.skipped)
+        assertEquals(original, parsed.tasks)
+    }
+
+    @Test fun `respaldo viejo sin prioridad ni fecha se importa con valores por defecto`() {
+        // Respaldo hecho con la 1.8.0: no trae "priority" ni "dueAt".
+        val old = """{"format":"ahora-backup","version":1,"exportedAt":1,
+            "tasks":[{"id":1,"title":"Vieja","createdAt":1700000000000,
+            "reminderAt":null,"isDone":false,"doneAt":null,"recurrence":null}]}"""
+        val parsed = TaskBackup.tasksFromJson(old)
+        assertEquals(0, parsed.skipped)
+        val task = parsed.tasks.single()
+        assertEquals(0, task.priority)
+        assertNull(task.dueAt)
     }
 
     @Test(expected = TaskBackup.BackupFormatException::class)

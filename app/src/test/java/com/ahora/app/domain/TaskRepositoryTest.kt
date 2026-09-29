@@ -3,6 +3,8 @@ package com.ahora.app.domain
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
+import com.ahora.app.data.TaskListComparator
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +52,9 @@ class TaskRepositoryTest {
             tasks.map { list ->
                 val needle = unescapeLike(pattern)
                 list.filter { it.title.contains(needle, ignoreCase = true) }
-                    .sortedWith(compareBy<Task> { it.isDone }.thenByDescending { it.createdAt })
+                    // Mismo orden que el SQL de Room (ETAPA 10): replica
+                    // [TaskListComparator] en vez de duplicar la lógica.
+                    .sortedWith(TaskListComparator)
             }
 
         private fun unescapeLike(pattern: String): String {
@@ -220,17 +224,60 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun `updateTitle cambia el titulo y rechaza vacio`() = runTest {
+    fun `add guarda prioridad y fecha limite`() = runTest {
+        val due = NOW + 24 * HOUR
+        val id = repo.add("Urgente", TaskPriority.HIGH, due)
+        val task = dao.getById(id)!!
+        assertEquals(TaskPriority.HIGH.level, task.priority)
+        assertEquals(due, task.dueAt)
+    }
+
+    @Test
+    fun `add usa sin prioridad y sin fecha por defecto`() = runTest {
         val task = addTask()
-        repo.updateTitle(task, "  Nuevo título ")
-        assertEquals("Nuevo título", dao.getById(task.id)!!.title)
+        assertEquals(TaskPriority.NONE.level, task.priority)
+        assertNull(task.dueAt)
+    }
+
+    @Test
+    fun `updateDetails cambia titulo prioridad y fecha y rechaza vacio`() = runTest {
+        val task = addTask()
+        val due = NOW + 24 * HOUR
+        repo.updateDetails(task, "  Nuevo título ", TaskPriority.MEDIUM, due)
+        val updated = dao.getById(task.id)!!
+        assertEquals("Nuevo título", updated.title)
+        assertEquals(TaskPriority.MEDIUM.level, updated.priority)
+        assertEquals(due, updated.dueAt)
 
         try {
-            repo.updateTitle(task, " ")
+            repo.updateDetails(task, " ", TaskPriority.LOW, null)
             fail("debería lanzar IllegalArgumentException")
         } catch (e: IllegalArgumentException) {
             // esperado
         }
+    }
+
+    @Test
+    fun `updateDetails conserva el recordatorio`() = runTest {
+        val task = addTask()
+        repo.setReminder(task, NOW + HOUR)
+        val withReminder = dao.getById(task.id)!!
+
+        repo.updateDetails(withReminder, "Mismo título", TaskPriority.HIGH, null)
+
+        val updated = dao.getById(task.id)!!
+        assertEquals(NOW + HOUR, updated.reminderAt)
+        assertEquals(TaskPriority.HIGH.level, updated.priority)
+    }
+
+    @Test
+    fun `updateDetails puede quitar la fecha limite`() = runTest {
+        val id = repo.add("Con fecha", TaskPriority.LOW, NOW + HOUR)
+        val task = dao.getById(id)!!
+
+        repo.updateDetails(task, "Con fecha", TaskPriority.LOW, null)
+
+        assertNull(dao.getById(id)!!.dueAt)
     }
 
     @Test

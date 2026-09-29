@@ -1,6 +1,9 @@
 package com.ahora.app.ui.components
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -14,34 +17,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import com.ahora.app.data.TaskPriority
+import com.ahora.app.ui.theme.Spacing
 
-/** Diálogo para editar el texto de una tarea existente. */
+/**
+ * Diálogo para editar una tarea: texto, prioridad y fecha límite
+ * (ETAPA 10). Devuelve los tres valores al confirmar.
+ */
 @Composable
 fun EditTaskDialog(
     initialText: String,
+    initialPriority: TaskPriority = TaskPriority.NONE,
+    initialDueAt: Long? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String, TaskPriority, Long?) -> Unit
 ) {
     var text by remember { mutableStateOf(initialText) }
+    var priority by remember { mutableStateOf(initialPriority) }
+    var dueAt by remember { mutableStateOf(initialDueAt) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar tarea") },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (text.isNotBlank()) onConfirm(text)
-                }),
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (text.isNotBlank()) onConfirm(text, priority, dueAt)
+                    }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(Spacing.m))
+                TaskFormFields(
+                    priority = priority,
+                    onPriorityChange = { priority = it },
+                    dueAt = dueAt,
+                    onDueAtChange = { dueAt = it }
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (text.isNotBlank()) onConfirm(text) },
+                onClick = { if (text.isNotBlank()) onConfirm(text, priority, dueAt) },
                 enabled = text.isNotBlank()
             ) { Text("Guardar") }
         },

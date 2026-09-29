@@ -3,6 +3,7 @@ package com.ahora.app.domain
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.buildSearchPattern
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -34,10 +35,14 @@ class TaskRepository(
     fun search(query: String): Flow<List<Task>> =
         if (query.isBlank()) observeAll() else dao.search(buildSearchPattern(query))
 
-    suspend fun add(title: String): Long {
+    suspend fun add(
+        title: String,
+        priority: TaskPriority = TaskPriority.NONE,
+        dueAt: Long? = null
+    ): Long {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
-        return dao.upsert(Task(title = clean))
+        return dao.upsert(Task(title = clean, priority = priority.level, dueAt = dueAt))
     }
 
     suspend fun toggleDone(task: Task) {
@@ -59,10 +64,15 @@ class TaskRepository(
         }
     }
 
-    suspend fun updateTitle(task: Task, title: String) {
+    suspend fun updateDetails(
+        task: Task,
+        title: String,
+        priority: TaskPriority,
+        dueAt: Long?
+    ) {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
-        dao.upsert(task.copy(title = clean))
+        dao.upsert(task.copy(title = clean, priority = priority.level, dueAt = dueAt))
     }
 
     /** Elimina y devuelve la tarea para poder deshacer. */

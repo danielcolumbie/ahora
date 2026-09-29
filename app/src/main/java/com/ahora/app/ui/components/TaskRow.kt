@@ -11,8 +11,11 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +28,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.Icon
@@ -40,10 +45,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
 
@@ -58,6 +65,7 @@ import com.ahora.app.ui.theme.Spacing
  * fila: así son la misma instancia para todas las filas y Compose puede
  * saltar la recomposición de las que no cambiaron.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TaskRow(
     task: Task,
@@ -77,6 +85,7 @@ fun TaskRow(
     } else {
         MaterialTheme.typography.bodyLarge
     }
+    val priority = TaskPriority.fromLevel(task.priority)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -100,9 +109,26 @@ fun TaskRow(
                 style = textStyle,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            task.reminderAt?.let { at ->
+            // Metadatos en pills neutras (el color solo comunica: prioridad
+            // alta o fecha vencida). Sin metadatos, la fila queda limpia.
+            val hasMeta = priority != TaskPriority.NONE ||
+                task.dueAt != null || task.reminderAt != null
+            if (hasMeta) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                ReminderPill(label = formatReminderLabel(at))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    if (priority != TaskPriority.NONE) {
+                        PriorityPill(priority = priority)
+                    }
+                    task.dueAt?.let { due ->
+                        DuePill(dueAt = due)
+                    }
+                    task.reminderAt?.let { at ->
+                        ReminderPill(label = formatReminderLabel(at))
+                    }
+                }
             }
         }
         IconButton(onClick = { onToggleReminder(task) }) {
@@ -123,19 +149,22 @@ fun TaskRow(
 }
 
 /**
- * Pill pequeña con campana para la etiqueta del recordatorio.
- * Neutra a propósito: el acento se reserva para acciones y estados,
- * no para metadatos que aparecen en cada fila.
+ * Pill pequeña de metadato (campana, bandera, calendario). Neutra a
+ * propósito: el acento se reserva para acciones y estados, no para
+ * metadatos que aparecen en cada fila. Solo la prioridad alta y la fecha
+ * vencida usan el color de error, porque ahí sí hay algo que comunicar.
  */
 @Composable
-private fun ReminderPill(
+private fun MetaPill(
+    icon: ImageVector,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Surface(
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        contentColor = contentColor,
         modifier = modifier
     ) {
         Row(
@@ -143,7 +172,7 @@ private fun ReminderPill(
             modifier = Modifier.padding(horizontal = Spacing.s, vertical = Spacing.xs)
         ) {
             Icon(
-                imageVector = Icons.Outlined.Notifications,
+                imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(Spacing.m)
             )
@@ -154,6 +183,38 @@ private fun ReminderPill(
             )
         }
     }
+}
+
+@Composable
+private fun ReminderPill(label: String) {
+    MetaPill(icon = Icons.Outlined.Notifications, label = label)
+}
+
+/** Bandera con la prioridad. Solo Alta usa el color de error. */
+@Composable
+private fun PriorityPill(priority: TaskPriority) {
+    val color = when (priority) {
+        TaskPriority.HIGH -> MaterialTheme.colorScheme.error
+        TaskPriority.MEDIUM -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    MetaPill(
+        icon = Icons.Outlined.Flag,
+        label = priority.label,
+        contentColor = color
+    )
+}
+
+/** Calendario con la fecha límite. En rojo solo si ya venció. */
+@Composable
+private fun DuePill(dueAt: Long) {
+    val overdue = isOverdue(dueAt)
+    MetaPill(
+        icon = Icons.Outlined.CalendarToday,
+        label = formatDueLabel(dueAt),
+        contentColor = if (overdue) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 /**

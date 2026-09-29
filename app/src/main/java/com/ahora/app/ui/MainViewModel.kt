@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ahora.app.data.SettingsRepository
 import com.ahora.app.data.Task
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.di.AppContainer
 import com.ahora.app.domain.TaskRepository
 import com.ahora.app.notifications.AlarmScheduler
@@ -123,10 +124,14 @@ class MainViewModel(
 
     fun exactAlarmSettingsIntent(): Intent? = scheduler.exactAlarmSettingsIntent()
 
-    fun addTask(title: String) {
+    fun addTask(
+        title: String,
+        priority: TaskPriority = TaskPriority.NONE,
+        dueAt: Long? = null
+    ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.add(title) }
+            runCatching { repository.add(title, priority, dueAt) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar la tarea")) }
         }
     }
@@ -147,10 +152,10 @@ class MainViewModel(
             .onFailure { _events.emit(UiEvent.Message("No se pudo deshacer")) }
     }
 
-    fun updateTitle(task: Task, title: String) {
+    fun updateDetails(task: Task, title: String, priority: TaskPriority, dueAt: Long?) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.updateTitle(task, title) }
+            runCatching { repository.updateDetails(task, title, priority, dueAt) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar el cambio")) }
         }
     }

@@ -70,10 +70,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
+import com.ahora.app.data.TaskPriority
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.components.EmptyState
+import com.ahora.app.ui.components.TaskFormFields
 import com.ahora.app.ui.components.TasksColumn
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
@@ -87,6 +89,10 @@ fun HomeScreen(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var input by rememberSaveable { mutableStateOf("") }
+    // Borrador de prioridad y fecha límite: solo visibles mientras se escribe,
+    // para que la captura siga siendo rápida (ETAPA 10).
+    var draftPriority by rememberSaveable { mutableStateOf(TaskPriority.NONE) }
+    var draftDueAt by rememberSaveable { mutableStateOf<Long?>(null) }
     val focusRequester = remember { FocusRequester() }
 
     val app = context.applicationContext as AhoraApplication
@@ -111,8 +117,10 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 
     fun submit() {
-        viewModel.addTask(input)
+        viewModel.addTask(input, draftPriority, draftDueAt)
         input = ""
+        draftPriority = TaskPriority.NONE
+        draftDueAt = null
     }
 
     fun onMicClick() {
@@ -302,6 +310,20 @@ fun HomeScreen(viewModel: MainViewModel) {
                 )
             }
 
+            // Campos de prioridad y fecha límite: aparecen solo mientras se
+            // escribe, para no entorpecer la captura rápida (ETAPA 10).
+            AnimatedVisibility(visible = input.isNotBlank()) {
+                Column {
+                    Spacer(modifier = Modifier.height(Spacing.m))
+                    TaskFormFields(
+                        priority = draftPriority,
+                        onPriorityChange = { draftPriority = it },
+                        dueAt = draftDueAt,
+                        onDueAtChange = { draftDueAt = it }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(Spacing.xxl))
             Text(
                 text = "HOY",
@@ -320,7 +342,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                     tasks = tasks,
                     onToggleDone = viewModel::toggleDone,
                     onDelete = viewModel::deleteTask,
-                    onUpdateTitle = viewModel::updateTitle,
+                    onUpdateDetails = viewModel::updateDetails,
                     onSetReminder = viewModel::setReminder,
                     onClearReminder = viewModel::clearReminder,
                     onPastReminder = viewModel::pastReminderSelected,

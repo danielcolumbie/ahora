@@ -15,8 +15,8 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Backlog (orden de prioridad)
 1. ~~Búsqueda de tareas en "Todas".~~ ✅ hecho en 1.8.0 (ETAPA 9).
-2. Prioridades (alta/media/baja) con color.
-3. Fechas de vencimiento con selector de fecha visual.
+2. ~~Prioridades (alta/media/baja) con color.~~ ✅ hecho en 1.9.0 (ETAPA 10).
+3. ~~Fechas de vencimiento con selector de fecha visual.~~ ✅ hecho en 1.9.0 (ETAPA 10).
 4. Etiquetas/categorías con colores.
 5. Widget para la pantalla de inicio.
 6. Subtareas dentro de una tarea.
@@ -34,6 +34,19 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+
+### 1.9.0 (2026-09-29) — prioridades y fechas (ETAPA 10)
+- **Nuevo: prioridad por tarea** (Sin prioridad / Baja / Media / Alta). Se elige al crear (campos que aparecen bajo la barra de captura mientras escribes) y al editar (diálogo de edición ampliado con el mismo componente `TaskFormFields`). En la fila se muestra como pill con bandera: Alta en rojo, Media en terciario, Baja neutra.
+- **Nuevo: fecha límite por tarea** (solo día, sin hora). Atajos Hoy/Mañana + selector de día de Material3. En la fila se muestra como pill con calendario ("Hoy", "Mañana", "Ayer", "3 oct"); en rojo solo si ya venció.
+- **Orden sensato en "Todas" y en la búsqueda**: pendientes primero, luego mayor prioridad, luego fecha más cercana (sin fecha al final), desempate por creación reciente. La regla vive en SQL (`TaskDao`) y se replica en Kotlin puro (`TaskOrdering.kt`) para poder probarla en JVM.
+- **Migración Room 1→2** (`MIGRATION_1_2`, `ALTER TABLE` con valores por defecto): las tareas existentes quedan con prioridad "Sin prioridad" y sin fecha; ningún dato previo cambia de significado. Schema v2 exportado en `app/schemas/`.
+- **Respaldo JSON** incluye prioridad y fecha; los respaldos viejos (1.8.0) se importan sin errores con valores por defecto (campos opcionales, sin bump de versión del formato).
+- 25 pruebas nuevas (97 JVM en total, todas verdes): enum de prioridad (4), orden canónico (5), etiquetas de fecha límite y vencimiento con zona fija America/Havana (10), repositorio add/updateDetails (5 netas) y respaldo con campos nuevos + compatibilidad hacia atrás (2).
+- Prueba de migración 1→2 añadida a `MigrationTest` (instrumentada: compila OK, se ejecuta en dispositivo/emulador; aquí no hay).
+- Sin dependencias nuevas, todo offline. APK apenas crece (solo código propio).
+- **Qué NO se hizo**: notificaciones al vencer (la fecha límite no programa alarma; solo es visual), filtros por prioridad/fecha en "Todas", insignias en el icono, ni recurrencia (eso es ETAPA 11). El recordatorio con hora sigue siendo la vía para que algo "suene".
+- **Próxima etapa pendiente**: ETAPA 11 — Recurrencia (tareas que se repiten: diario/semanal; la entidad ya reserva el campo `recurrence`).
+- Nota: el worker de tests de Gradle (`testDebugUnitTest`) sigue roto en este entorno (NPE en `SuiteTestClassProcessor`); los tests JVM se ejecutaron vía JUnitCore directo sobre las clases compiladas (classpath = `debugUnitTestRuntimeClasspath` con los `classes.jar` extraídos de los AAR; el `android.jar` va AL FINAL para no opacar el `org.json:json` real con sus stubs).
 
 ### 1.8.0 (2026-09-29) — búsqueda de tareas (ETAPA 9)
 - **Nuevo: buscar en "Todas".** Campo de búsqueda sobre la lista: escribe y filtra por título al instante (insensible a mayúsculas). Muestra el conteo ("3 resultados") y un estado elegante de "Sin resultados" cuando nada coincide; la X limpia la búsqueda.
