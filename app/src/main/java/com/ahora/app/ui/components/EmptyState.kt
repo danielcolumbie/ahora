@@ -55,7 +55,7 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(Spacing.m))
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -417,11 +418,26 @@ fun HomeScreen(viewModel: MainViewModel) {
             }
 
             Spacer(modifier = Modifier.height(Spacing.xxl))
-            Text(
-                text = "HOY",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Etiqueta de sección con contador discreto: con muchas tareas
+            // se lee de un vistazo cuánto queda, sin añadir ruido visual.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "HOY",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (tasks.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        text = tasks.size.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(Spacing.s))
 
             if (tasks.isEmpty()) {

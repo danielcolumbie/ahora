@@ -35,6 +35,14 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Changelog
 
+### 1.15.0 (2026-09-29) — rediseño premium, bloque B: Home
+- **Pantalla principal rediseñada.** La etiqueta de sección «HOY» lleva ahora un contador discreto a su derecha (`titleMedium`, `onSurfaceVariant` al 65%): con muchas tareas se lee de un vistazo cuánto queda pendiente, sin añadir ruido visual. Patrón documentado en `docs/DESIGN_SYSTEM.md`.
+- **Estado vacío refinado:** el subtítulo pasa de `bodyLarge` a `bodyMedium`, alineado con el sistema («título `titleLarge` + subtítulo `bodyMedium` + botón primario»). Se conserva el vacío minimalista de texto («Todo despejado.»): sin ilustraciones ni decoración, como pide FASE 11.
+- **`TasksColumn` verificada, no reescrita:** la entrada escalonada ya usa `Motion.staggerDelayMillis` con tope de 360ms (`STAGGER_MAX_MILLIS`), así que en listas largas la entrada no se siente mecánica ni tarda en arrancar, y las filas que se componen al hacer scroll entran sin retardo. Solo se aclaró el comentario que documenta esa intención; el comportamiento está fijado por `MotionTest`.
+- **Sin tocar (otros bloques):** el interior de la barra de creación rápida (bloque C), el interior de `TaskRow`/`MetaPill`/diálogos (bloque D), la navegación (bloque E), Ajustes (bloque F), la paleta dark (bloque G) y las microinteracciones más allá de la entrada de la lista (bloque H). Todo color nuevo sale de los tokens del tema (funciona en claro y oscuro).
+- **Qué NO se hizo:** no se añadió ilustración al estado vacío (el actual de texto cumple FASE 11: explica, orienta, minimalista); no se tocaron los 12 estados de borrador de la captura (los reordenará el bloque C con la separación rápida vs. avanzada); sin dependencias nuevas, sin cambios de lógica ni de arquitectura.
+- Validación: `assembleDebug` OK, 186/186 tests JVM verdes, `lintDebug` sin errores (48 avisos, todos los conocidos de dependencias desactualizadas).
+
 ### 1.14.0 (2026-09-29) — rediseño premium, bloque A: design system
 - **Nueva fase post-etapa arrancada por orden de Daniel.** Verificación completa del estado real (FASE 0) en `docs/informe-post-etapa.md`: build debug+release OK, 183/183 tests verdes, lint sin errores, sin regresiones críticas. Auditoría visual en `docs/auditoria-visual.md` y sistema de diseño en `docs/DESIGN_SYSTEM.md`.
 - **Cambios (solo tokens del sistema, sin rediseño visual visible todavía):** nuevo objeto `Sizes` con las dimensiones de componentes (antes había `dp` sueltos en `TaskRow`); `labelSmall` (12sp) añadido a `AhoraTypography` (las pills usaban el default de M3); la prioridad media vuelve a pill neutra (ya no depende de `tertiary` sin definir); `EmptyState` usa `titleLarge` propio en vez de `headlineSmall` genérico; el spring del checkbox pierde el rebote (`dampingRatio 0.8`).

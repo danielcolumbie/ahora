@@ -88,7 +88,10 @@ fun TasksColumn(
     }
 
     // Cada tarea anima su entrada una sola vez: las iniciales de forma
-    // escalonada y las que se añadan después, al aparecer.
+    // escalonada y las que se añadan después, al aparecer. El retardo
+    // escalonado tiene tope (Motion.STAGGER_MAX_MILLIS = 360ms): en listas
+    // largas la entrada no se siente mecánica ni tarda en arrancar, y las
+    // filas que se componen al hacer scroll entran sin retardo.
     val shownIds = remember { mutableSetOf<Long>() }
     // El estado de la lista vive aquí (no se recrea en cada recomposición),
     // así la posición del scroll sobrevive a los cambios de la UI.

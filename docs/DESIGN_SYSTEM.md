@@ -73,6 +73,10 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   lo detectado debajo. Capturar en dos toques.
 - **Estado vacío:** título `titleLarge` + subtítulo `bodyMedium` +
   botón primario. Entra con fundido suave.
+- **Etiqueta de sección con contador:** la etiqueta (`titleMedium` en
+  mayúsculas) puede llevar un contador discreto a su derecha
+  (`titleMedium`, `onSurfaceVariant` al 65%): informa la cantidad sin
+  añadir ruido. Se usa en la sección «HOY» de la pantalla principal.
 - **Diálogos:** `TaskFormFields` compartido (crear = editar).
 - **Ajustes:** secciones con `titleMedium` en mayúsculas; filas reutilizables
   (objetivo del rediseño: componente `SettingRow`).
