@@ -197,9 +197,28 @@ sistema (`Sizes`, `Spacing`).
 
 ## 9. Accesibilidad
 
-- Área táctil mínima 48dp en filas y controles.
-- `contentDescription` en todo icono con acción; `Role.Checkbox` en el
-  círculo personalizado.
+- Área táctil mínima 48dp en filas y controles (botones de icono, filas de
+  tarea y de ajustes, checkbox). Fijado por `AccessibilityTokensTest`
+  (`Sizes.minTouchRow` / `Spacing.minTouchRow` = 48dp). Excepción
+  verificada (bloque I, 1.22.0): los chips de M3 (`AssistChip`,
+  `FilterChip`) miden 32dp por estándar de Material; ampliar su área
+  táctil sin cambiar su visual es imposible (cualquier mínimo de altura se
+  propaga al fondo del chip), así que se conservan a 32dp: cumplen
+  WCAG 2.2 AA (mínimo 24px) y no se deforman los diálogos por perseguir
+  los 48dp. El botón de enviar de la creación rápida sí se corrigió de
+  40dp a 48dp (1.22.0).
+- `contentDescription` en todo icono con acción; `null` en los
+  decorativos (icono de la lupa del buscador, iconos de navegación con
+  etiqueta, iconos dentro de pills y filas). `Role.Checkbox` en el
+  círculo personalizado, con el título de la tarea como etiqueta
+  (1.22.0): sin ella TalkBack anunciaba el estado sin decir de qué tarea.
+- Anuncio único por fila (1.22.0): `SettingLinkRow`/`SettingSwitchRow` y
+  la columna del título de la tarea usan `mergeDescendants = true`, así
+  TalkBack lee título + subtítulo/pills + rol + estado en un solo gesto
+  (antes el nodo accionable quedaba sin texto y el título se leía
+  aparte). El `Switch` de ajustes sigue siendo solo visual (semántica
+  limpia). Etiquetas de sección (`FormSection`, «HOY», «Todas»,
+  «Ajustes») marcadas como encabezados.
 - Contraste AA en ambas paletas, verificado por cálculo sobre los hex de
   los tokens y fijado por el test `ColorContrastTest` (227 tests JVM):
   ratios clave en oscuro — `onSurfaceVariant`/fondo 8.08:1, texto de

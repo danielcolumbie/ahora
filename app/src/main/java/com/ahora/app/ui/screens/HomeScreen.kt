@@ -71,6 +71,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -294,7 +296,12 @@ fun HomeScreen(viewModel: MainViewModel) {
                             ) {
                                 Icon(
                                     Icons.Filled.Mic,
-                                    contentDescription = "Dictar tarea",
+                                    // El botón alterna dictar/detener: la
+                                    // etiqueta sigue al estado (bloque I).
+                                    // El estado también se ve en el texto
+                                    // "Escuchando…" y en el tinte: nunca
+                                    // depende solo del color.
+                                    contentDescription = micButtonDescription(listening),
                                     tint = if (listening) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -322,9 +329,12 @@ fun HomeScreen(viewModel: MainViewModel) {
                         ) {
                             FilledIconButton(
                                 onClick = { submit() },
-                                modifier = Modifier
-                                    .padding(end = Spacing.xs)
-                                    .size(40.dp)
+                                // Sin tamaño explícito a propósito (bloque I):
+                                // el IconButton de M3 mide 48dp de área
+                                // táctil por defecto; fijarlo a 40dp lo
+                                // dejaba por debajo del mínimo de
+                                // accesibilidad.
+                                modifier = Modifier.padding(end = Spacing.xs)
                             ) {
                                 Icon(
                                     Icons.Filled.ArrowUpward,
@@ -402,7 +412,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                 Text(
                     text = "HOY",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Encabezado para la navegación de TalkBack (bloque I).
+                    modifier = Modifier.semantics { heading() }
                 )
                 if (tasks.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -443,6 +455,14 @@ color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
         }
     }
 }
+
+/**
+ * Etiqueta de accesibilidad del botón del micrófono: el botón alterna
+ * entre dictar y detener, así que la etiqueta sigue al estado (bloque I).
+ * Función pura para poder probarla.
+ */
+internal fun micButtonDescription(listening: Boolean): String =
+    if (listening) "Detener dictado" else "Dictar tarea"
 
 /**
  * Anillo que se expande y se desvanece en bucle detrás del micrófono

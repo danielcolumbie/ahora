@@ -7,6 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.ahora.app.ui.theme.Spacing
 import java.util.Locale
 
@@ -34,7 +36,10 @@ fun FormSection(
         Text(
             text = title.uppercase(Locale.getDefault()),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Encabezado para la navegación de TalkBack (bloque I): las
+            // secciones de los diálogos y de Ajustes son hitos reales.
+            modifier = Modifier.semantics { heading() }
         )
         content()
     }

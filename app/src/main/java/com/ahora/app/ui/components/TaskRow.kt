@@ -56,6 +56,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
@@ -111,12 +113,25 @@ fun TaskRow(
     ) {
         CircularCheckButton(
             checked = task.isDone,
-            onToggle = { onToggleDone(task) }
+            onToggle = { onToggleDone(task) },
+            // TalkBack (bloque I): el checkbox necesita etiqueta propia —
+            // sin ella anunciaría "casilla de verificación" sin decir de
+            // qué tarea se trata. El estado (marcada/no marcada) lo anuncia
+            // el propio `toggleable` con `Role.Checkbox`.
+            label = task.title
         )
         Column(
             modifier = Modifier
                 .weight(1f)
-                .clickable(onClick = { onEdit(task) })
+                .clickable(
+                    onClick = { onEdit(task) },
+                    onClickLabel = "Editar",
+                    role = Role.Button
+                )
+                // Un solo anuncio: título + pills como un botón "Editar".
+                // Sin esto, TalkBack leería el nodo clicable vacío por un
+                // lado y cada texto por otro, desconectados entre sí.
+                .semantics(mergeDescendants = true) {}
                 .padding(horizontal = Spacing.s)
         ) {
             Text(
@@ -308,6 +323,8 @@ private fun RecurrencePill(recurrence: TaskRecurrence) {
 
 /**
  * Botón circular de completado, con semántica de checkbox para accesibilidad.
+ * [label] identifica la tarea en el anuncio de TalkBack (el estado
+ * marcada/no marcada lo anuncia el `toggleable` solo).
  * Al marcar/desmarcar, el círculo crece con un spring sutil (sin rebote) y
  * el check entra con escala; además se emite un tick háptico corto como
  * confirmación ([Haptics.tick]: sutil, solo cuando aporta; el sistema
@@ -318,6 +335,7 @@ private fun RecurrencePill(recurrence: TaskRecurrence) {
 private fun CircularCheckButton(
     checked: Boolean,
     onToggle: () -> Unit,
+    label: String,
     modifier: Modifier = Modifier
 ) {
     val borderColor by animateColorAsState(
@@ -353,6 +371,10 @@ private fun CircularCheckButton(
                     onToggle()
                 }
             )
+            // La etiqueta identifica la tarea en el anuncio de TalkBack
+            // ("Comprar pan, casilla de verificación, no marcada"): se
+            // fusiona en el mismo nodo del `toggleable`, sin duplicar.
+            .semantics { contentDescription = label }
     ) {
         Box(
             contentAlignment = Alignment.Center,

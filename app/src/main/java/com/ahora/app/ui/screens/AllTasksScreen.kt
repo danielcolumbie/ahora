@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.ui.MainViewModel
@@ -58,7 +60,12 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                 .padding(horizontal = Spacing.screenHorizontal)
         ) {
             Spacer(modifier = Modifier.height(Spacing.xxl))
-            Text(text = "Todas", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Todas",
+                style = MaterialTheme.typography.titleLarge,
+                // Encabezado para la navegación de TalkBack (bloque I).
+                modifier = Modifier.semantics { heading() }
+            )
             Spacer(modifier = Modifier.height(Spacing.m))
 
             TextField(
@@ -69,7 +76,9 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Filled.Search,
-                        contentDescription = "Buscar",
+                        // Decorativo (bloque I): no tiene acción; el
+                        // `placeholder` ya etiqueta el campo para TalkBack.
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },

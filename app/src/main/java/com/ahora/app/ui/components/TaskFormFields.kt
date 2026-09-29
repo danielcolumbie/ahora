@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DatePicker
@@ -23,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
@@ -77,10 +75,12 @@ fun TaskFormFields(
             }
         }
 
-        // Fecha límite: atajos Hoy/Mañana + selector de día.
+        // Fecha límite: atajos Hoy/Mañana + selector de día. FlowRow en vez
+        // de Row (bloque I): con la escala de fuente del sistema grande,
+        // los atajos no caben en una línea y se recortarían.
         FormSection(title = "Fecha límite") {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            FlowRow(
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 if (dueAt == null) {

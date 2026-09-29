@@ -10,7 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -45,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
@@ -200,7 +203,12 @@ fun SettingsScreen(
                 .padding(horizontal = Spacing.screenHorizontal)
         ) {
             Spacer(modifier = Modifier.height(Spacing.xxl))
-            Text(text = "Ajustes", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Ajustes",
+                style = MaterialTheme.typography.titleLarge,
+                // Encabezado para la navegación de TalkBack (bloque I).
+                modifier = Modifier.semantics { heading() }
+            )
 
             Spacer(modifier = Modifier.height(Spacing.xxl))
             FormSection(title = "Apariencia") {
@@ -312,7 +320,12 @@ fun SettingsScreen(
  * Selector de tema: los tres `FilterChip` usan el `primaryContainer`
  * propio de Ahora cuando están seleccionados (antes, el contenedor por
  * defecto de Material 3, ajeno a la paleta de un solo acento).
+ *
+ * `FlowRow` en vez de `Row` (bloque I): con la escala de fuente del
+ * sistema grande, los tres chips no caben en una línea y se recortarían;
+ * así bajan a la siguiente sin romperse.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ThemeSelector(selected: Int, onSelect: (Int) -> Unit) {
     val scheme = MaterialTheme.colorScheme
@@ -321,7 +334,10 @@ private fun ThemeSelector(selected: Int, onSelect: (Int) -> Unit) {
         selectedLabelColor = scheme.onPrimaryContainer,
         selectedLeadingIconColor = scheme.onPrimaryContainer
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
         ThemeChip("Automática", ThemeMode.SYSTEM, selected, chipColors, onSelect)
         ThemeChip("Claro", ThemeMode.LIGHT, selected, chipColors, onSelect)
         ThemeChip("Oscuro", ThemeMode.DARK, selected, chipColors, onSelect)

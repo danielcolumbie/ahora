@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
 
@@ -105,7 +106,12 @@ fun SettingLinkRow(
         title = title,
         icon = icon,
         subtitle = subtitle,
-        interaction = Modifier.clickable(role = Role.Button, onClick = onClick),
+        interaction = Modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            // Un solo anuncio en TalkBack ("Exportar tareas, Guarda un
+            // respaldo…, botón"): sin `mergeDescendants`, el nodo clicable
+            // quedaba sin texto y el título se leía aparte, desconectado.
+            .semantics(mergeDescendants = true) {},
         modifier = modifier
     ) {
         Icon(
@@ -134,11 +140,16 @@ fun SettingSwitchRow(
         title = title,
         icon = icon,
         subtitle = subtitle,
-        interaction = Modifier.toggleable(
-            value = checked,
-            role = Role.Switch,
-            onValueChange = onCheckedChange
-        ),
+        interaction = Modifier
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange
+            )
+            // Un solo anuncio con estado ("Notificaciones, Avisos de tus
+            // recordatorios, interruptor, activado"): ver el comentario en
+            // [SettingLinkRow].
+            .semantics(mergeDescendants = true) {},
         modifier = modifier
     ) {
         Switch(
