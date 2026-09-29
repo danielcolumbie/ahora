@@ -7,28 +7,35 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Upload
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,16 +44,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
 import com.ahora.app.notifications.NotificationHelper
+import com.ahora.app.ui.components.FormSection
+import com.ahora.app.ui.components.SettingLinkRow
+import com.ahora.app.ui.components.SettingSwitchRow
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
-/** Ajustes mínimos: apariencia, notificaciones, respaldo, acerca de y licencias. */
+/** Nombre por defecto del archivo de respaldo exportado. */
+internal const val DEFAULT_BACKUP_NAME = "ahora-respaldo.json"
+
+/** Mensaje de éxito al exportar el respaldo. */
+internal fun formatBackupSaved(): String = "Respaldo guardado."
+
+/** Mensaje de fallo de respaldo: acción ("guardar"/"importar") + causa. */
+internal fun formatBackupError(action: String, cause: String?): String =
+    "No se pudo $action: ${cause ?: "error desconocido"}"
+
+/** Mensaje de éxito al importar: tareas importadas y, si las hay, omitidas. */
+internal fun formatImportSuccess(imported: Int, skipped: Int): String {
+    val skippedPart = if (skipped > 0) " ($skipped omitidas)" else ""
+    return "Se importaron $imported tareas$skippedPart."
+}
+
+/**
+ * Ajustes (BLOQUE F del rediseño premium): secciones con la etiqueta del
+ * sistema ([FormSection]) y filas reutilizables ([SettingLinkRow] /
+ * [SettingSwitchRow]); los resultados del respaldo salen en un Snackbar
+ * del sistema en vez de un diálogo suelto.
+ */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -55,11 +85,29 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val scope = rememberCoroutineScope()
     var showAbout by remember { mutableStateOf(false) }
     var showLicenses by remember { mutableStateOf(false) }
-    var backupMessage by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // El "Reintentar" del Snackbar necesita el launcher ya creado, pero el
+    // callback no puede referenciar su propio val: los holders se declaran
+    // antes y se arman con SideEffect después de crear cada launcher.
+    val exportRetry = remember { mutableStateOf<(() -> Unit)?>(null) }
+    val importRetry = remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* el permiso se pide solo al activar; sin él, no hay avisos */ }
+
+    /** Resultado del respaldo en Snackbar; los fallos ofrecen reintentar. */
+    fun showBackupResult(message: String, retry: (() -> Unit)? = null) {
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = if (retry != null) "Reintentar" else null,
+                withDismissAction = true
+            )
+            if (result == SnackbarResult.ActionPerformed) retry?.invoke()
+        }
+    }
 
     // Respaldo local: la app no usa la nube de Android; el usuario guarda
     // y restaura su propio archivo JSON donde quiera (Storage Access
@@ -74,12 +122,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     out.write(json.toByteArray(Charsets.UTF_8))
                 } ?: error("No se pudo abrir el archivo")
             }
-            backupMessage = result.fold(
-                onSuccess = { "Respaldo guardado." },
-                onFailure = { e -> "No se pudo guardar: ${e.message}" }
+            result.fold(
+                onSuccess = { showBackupResult(formatBackupSaved()) },
+                onFailure = { e ->
+                    showBackupResult(formatBackupError("guardar", e.message), exportRetry.value)
+                }
             )
         }
     }
+    SideEffect { exportRetry.value = { exportLauncher.launch(DEFAULT_BACKUP_NAME) } }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -90,15 +141,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 } ?: error("No se pudo leer el archivo")
                 viewModel.importBackup(json)
             }
-            backupMessage = result.fold(
+            result.fold(
                 onSuccess = { r ->
-                    val skipped = if (r.skipped > 0) " (${r.skipped} omitidas)" else ""
-                    "Se importaron ${r.imported} tareas$skipped."
+                    showBackupResult(formatImportSuccess(r.imported, r.skipped))
                 },
-                onFailure = { e -> "No se pudo importar: ${e.message}" }
+                onFailure = { e ->
+                    showBackupResult(formatBackupError("importar", e.message), importRetry.value)
+                }
             )
         }
     }
+    SideEffect { importRetry.value = { importLauncher.launch(arrayOf("application/json")) } }
 
     fun toggleNotifications(enabled: Boolean) {
         viewModel.setNotificationsEnabled(enabled)
@@ -126,73 +179,84 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.screenHorizontal)
-    ) {
-        Spacer(modifier = Modifier.height(Spacing.xxl))
-        Text(text = "Ajustes", style = MaterialTheme.typography.titleLarge)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.screenHorizontal)
+        ) {
+            Spacer(modifier = Modifier.height(Spacing.xxl))
+            Text(text = "Ajustes", style = MaterialTheme.typography.titleLarge)
 
-        Spacer(modifier = Modifier.height(Spacing.xxl))
-        SectionHeader("APARIENCIA")
-        Spacer(modifier = Modifier.height(Spacing.s))
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-            FilterChip(
-                selected = themeMode == ThemeMode.SYSTEM,
-                onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
-                label = { Text("Automática") }
-            )
-            FilterChip(
-                selected = themeMode == ThemeMode.LIGHT,
-                onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) },
-                label = { Text("Claro") }
-            )
-            FilterChip(
-                selected = themeMode == ThemeMode.DARK,
-                onClick = { viewModel.setThemeMode(ThemeMode.DARK) },
-                label = { Text("Oscuro") }
-            )
+            Spacer(modifier = Modifier.height(Spacing.xxl))
+            FormSection(title = "Apariencia") {
+                ThemeSelector(
+                    selected = themeMode,
+                    onSelect = { viewModel.setThemeMode(it) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xxl))
+            FormSection(title = "Notificaciones") {
+                SettingSwitchRow(
+                    title = "Notificaciones",
+                    subtitle = "Avisos de tus recordatorios",
+                    icon = Icons.Outlined.Notifications,
+                    checked = notificationsEnabled,
+                    onCheckedChange = { toggleNotifications(it) }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingLinkRow(
+                    title = "Sonido y vibración",
+                    subtitle = "Se configura en los ajustes del sistema",
+                    icon = Icons.Outlined.VolumeUp,
+                    onClick = { openSystemChannelSettings() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xxl))
+            FormSection(title = "Respaldo") {
+                SettingLinkRow(
+                    title = "Exportar tareas",
+                    subtitle = "Guarda un respaldo en un archivo",
+                    icon = Icons.Outlined.Upload,
+                    onClick = { exportLauncher.launch(DEFAULT_BACKUP_NAME) }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingLinkRow(
+                    title = "Importar tareas",
+                    subtitle = "Restaura desde un archivo de respaldo",
+                    icon = Icons.Outlined.Download,
+                    onClick = { importLauncher.launch(arrayOf("application/json")) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xxl))
+            FormSection(title = "Acerca de") {
+                SettingLinkRow(
+                    title = "Acerca de Ahora",
+                    subtitle = "Qué hace esta app con tus datos",
+                    icon = Icons.Outlined.Info,
+                    onClick = { showAbout = true }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingLinkRow(
+                    title = "Licencias de código abierto",
+                    subtitle = "Componentes que usa la app",
+                    icon = Icons.Outlined.Description,
+                    onClick = { showLicenses = true }
+                )
+            }
+            Spacer(modifier = Modifier.height(Spacing.xxl))
         }
 
-        Spacer(modifier = Modifier.height(Spacing.xxl))
-        SectionHeader("NOTIFICACIONES")
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        SettingSwitchRow(
-            title = "Notificaciones",
-            subtitle = "Avisos de tus recordatorios",
-            checked = notificationsEnabled,
-            onCheckedChange = { toggleNotifications(it) }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.m)
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        SettingLinkRow(
-            title = "Sonido y vibración",
-            subtitle = "Se configura en los ajustes del sistema",
-            onClick = { openSystemChannelSettings() }
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.xxl))
-        SectionHeader("RESPALDO")
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        SettingLinkRow(
-            title = "Exportar tareas",
-            subtitle = "Guarda un respaldo en un archivo",
-            onClick = { exportLauncher.launch("ahora-respaldo.json") }
-        )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        SettingLinkRow(
-            title = "Importar tareas",
-            subtitle = "Restaura desde un archivo de respaldo",
-            onClick = { importLauncher.launch(arrayOf("application/json")) }
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.xxl))
-        SectionHeader("ACERCA DE")
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        TextButton(onClick = { showAbout = true }) { Text("Acerca de Ahora") }
-        TextButton(onClick = { showLicenses = true }) { Text("Licencias de código abierto") }
-        Spacer(modifier = Modifier.height(Spacing.xxl))
     }
 
     if (showAbout) {
@@ -229,85 +293,40 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             }
         )
     }
-
-    if (backupMessage != null) {
-        AlertDialog(
-            onDismissRequest = { backupMessage = null },
-            text = { Text(backupMessage!!) },
-            confirmButton = {
-                TextButton(onClick = { backupMessage = null }) { Text("Cerrar") }
-            }
-        )
-    }
 }
 
-/** Etiqueta de sección en mayúsculas: el único estilo de "eyebrow" de la app. */
+/**
+ * Selector de tema: los tres `FilterChip` usan el `primaryContainer`
+ * propio de Ahora cuando están seleccionados (antes, el contenedor por
+ * defecto de Material 3, ajeno a la paleta de un solo acento).
+ */
 @Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun ThemeSelector(selected: Int, onSelect: (Int) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val chipColors = FilterChipDefaults.filterChipColors(
+        selectedContainerColor = scheme.primaryContainer,
+        selectedLabelColor = scheme.onPrimaryContainer,
+        selectedLeadingIconColor = scheme.onPrimaryContainer
     )
-}
-
-@Composable
-private fun SettingLinkRow(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.m)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(Spacing.xxs))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        ThemeChip("Automática", ThemeMode.SYSTEM, selected, chipColors, onSelect)
+        ThemeChip("Claro", ThemeMode.LIGHT, selected, chipColors, onSelect)
+        ThemeChip("Oscuro", ThemeMode.DARK, selected, chipColors, onSelect)
     }
 }
 
 @Composable
-private fun SettingSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit
+private fun ThemeChip(
+    label: String,
+    mode: Int,
+    selected: Int,
+    colors: androidx.compose.material3.SelectableChipColors,
+    onSelect: (Int) -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.m)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(Spacing.xxs))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled
-        )
-    }
+    FilterChip(
+        selected = selected == mode,
+        onClick = { onSelect(mode) },
+        label = { Text(label) },
+        colors = colors
+    )
 }

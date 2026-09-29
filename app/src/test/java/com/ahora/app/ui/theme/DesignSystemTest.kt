@@ -26,4 +26,9 @@ class DesignSystemTest {
     fun `el area tactil minima respeta accesibilidad`() {
         assertTrue(Sizes.minTouchRow >= 48.dp)
     }
+
+    @Test
+    fun `la caja del icono de ajustes contiene al icono`() {
+        assertTrue(Sizes.settingIconBox > Sizes.settingIcon)
+    }
 }

@@ -62,6 +62,8 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
 | `checkIcon` | 15dp | Check dentro del círculo |
 | `minTouchRow` | 48dp | Área táctil mínima de la fila |
 | `pillIcon` | 12dp (`Spacing.m`) | Icono dentro de pills |
+| `settingIconBox` | 36dp | Caja del icono en las filas de ajustes |
+| `settingIcon` | 20dp | Icono dentro de la caja de ajustes |
 
 ## 5. Componentes
 
@@ -101,10 +103,26 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   calendario) y sección «Hora» (entrada de tiempo en 24h).
 - **Sección de formulario (`FormSection`):** etiqueta `titleMedium` en
   mayúsculas (`onSurfaceVariant`) + contenido, separados por `Spacing.s`.
-  La comparten el diálogo de edición, `TaskFormFields` y el diálogo de
-  recordatorio: una sola jerarquía en todos los diálogos.
-- **Ajustes:** secciones con `titleMedium` en mayúsculas; filas reutilizables
-  (objetivo del rediseño: componente `SettingRow`).
+  La comparten el diálogo de edición, `TaskFormFields`, el diálogo de
+  recordatorio y la pantalla de ajustes: una sola jerarquía en diálogos y
+  ajustes.
+- **Fila de ajustes (`SettingRow`, `ui/components/SettingRow.kt`):** icono
+  en caja neutra de 36dp (`surfaceVariant`, radio `Spacing.s`, icono 20dp en
+  `onSurfaceVariant`) + título (`bodyLarge`) + subtítulo opcional
+  (`bodyMedium`, `onSurfaceVariant`) + control a la derecha. Altura mínima
+  48dp (`Spacing.minTouchRow`); sin `dp`/`sp` sueltos. Variantes:
+  `SettingLinkRow` (chevron, `Role.Button`) y `SettingSwitchRow` (toda la
+  fila alterna el interruptor; el `Switch` es solo el indicador visual y su
+  semántica se limpia para que TalkBack anuncie la fila una sola vez, con
+  estado, vía `Role.Switch`). El icono es decorativo: el título ya describe
+  la fila. Las filas de una sección se separan con `HorizontalDivider`
+  (`outlineVariant`), como las filas de tarea.
+- **Ajustes:** secciones con `FormSection` (la misma etiqueta del sistema que
+  los diálogos: `titleMedium` en mayúsculas) y filas reutilizables
+  `SettingRow` (ver abajo). Los resultados del respaldo salen en un
+  `Snackbar` del sistema, con acción «Reintentar» cuando el fallo lo
+  permite. El selector de tema usa `FilterChip` con el `primaryContainer`
+  propio al seleccionar (antes, el contenedor por defecto de M3).
 - **Barra de navegación (1.18.0):** 3 destinos (Hoy / Todas / Ajustes),
   `NavigationBar` de M3 sin cambiar el patrón. Selección = indicador
   `primaryContainer` + icono relleno (`onPrimaryContainer`); sin seleccionar =

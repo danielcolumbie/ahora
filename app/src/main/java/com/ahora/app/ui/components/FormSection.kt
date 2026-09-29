@@ -17,9 +17,9 @@ import java.util.Locale
  * `Spacing.s`.
  *
  * La comparten el diálogo de edición (`EditTaskDialog`), el de creación
- * avanzada (a través de [TaskFormFields]) y el de recordatorio
- * (`ReminderDialog`): una sola etiqueta, un solo espaciado, una sola
- * jerarquía en todos los diálogos.
+ * avanzada (a través de [TaskFormFields]), el de recordatorio
+ * (`ReminderDialog`) y la pantalla de ajustes (`SettingsScreen`): una sola
+ * etiqueta, un solo espaciado, una sola jerarquía en diálogos y ajustes.
  */
 @Composable
 fun FormSection(

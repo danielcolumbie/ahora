@@ -28,4 +28,10 @@ object Sizes {
 
     /** Icono dentro de las pills de metadatos. */
     val pillIcon = 12.dp
+
+    /** Caja del icono en las filas de ajustes (BLOQUE F del rediseño premium). */
+    val settingIconBox = 36.dp
+
+    /** Icono dentro de la caja de las filas de ajustes. */
+    val settingIcon = 20.dp
 }
