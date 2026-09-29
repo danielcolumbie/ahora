@@ -5,7 +5,9 @@ import androidx.room.PrimaryKey
 
 /**
  * Modelo de datos de una tarea.
- * [recurrence] queda reservado para la futura función de tareas recurrentes (V1 no lo usa).
+ * [recurrence] guarda el [TaskRecurrence.code], o null si no se repite
+ * (ETAPA 11: al completar una tarea recurrente se marca la ocurrencia
+ * como hecha y se genera la siguiente con su fecha desplazada).
  * [priority] es el nivel de [TaskPriority] (0 = sin prioridad).
  * [dueAt] es la fecha límite en milisegundos (inicio del día local) o null si no hay.
  */

@@ -5,6 +5,9 @@ import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.data.TaskListComparator
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
+import com.ahora.app.data.nextAfter
+import com.ahora.app.data.toCode
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,6 +82,11 @@ class TaskRepositoryTest {
             val saved = task.copy(id = id)
             tasks.value = tasks.value.filterNot { it.id == id } + saved
             return id
+        }
+
+        override suspend fun insertNextOccurrence(done: Task, next: Task): Long {
+            upsert(done)
+            return upsert(next)
         }
 
         /** Cuántas veces se llamó al lote: la importación debe usarlo una sola vez. */
@@ -505,5 +513,119 @@ class TaskRepositoryTest {
         assertEquals(2, resultados.size)
         assertEquals("Comprar leche", resultados[0].title)
         assertTrue(resultados[1].isDone)
+    }
+
+    // ---- ETAPA 11: recurrencia ----
+
+    @Test
+    fun `add guarda la recurrencia y NONE queda en NULL`() = runTest {
+        val dailyId = repo.add("Vitaminas", recurrence = TaskRecurrence.DAILY)
+        val plainId = repo.add("Una vez")
+
+        assertEquals("DAILY", dao.getById(dailyId)!!.recurrence)
+        assertNull(dao.getById(plainId)!!.recurrence)
+    }
+
+    @Test
+    fun `toggleDone en tarea diaria genera la siguiente ocurrencia`() = runTest {
+        val due = NOW + 24 * HOUR
+        val reminder = NOW + HOUR
+        val id = repo.add("Vitaminas", TaskPriority.MEDIUM, due, TaskRecurrence.DAILY)
+        repo.setReminder(dao.getById(id)!!, reminder)
+        val task = dao.getById(id)!!
+        // Limpia el registro de la programación inicial: lo que sigue
+        // debe ser solo lo que provoque completar la tarea.
+        scheduler.scheduled.clear()
+
+        repo.toggleDone(task)
+
+        // La ocurrencia completada queda marcada como hecha, sin recordatorio.
+        val done = dao.getById(id)!!
+        assertTrue(done.isDone)
+        assertNull(done.reminderAt)
+        // Su alarma se canceló.
+        assertEquals(listOf(id), scheduler.cancelled)
+
+        // La siguiente ocurrencia: pendiente, con fecha y recordatorio
+        // desplazados un día, misma prioridad y misma recurrencia.
+        val all = dao.getAll()
+        assertEquals(2, all.size)
+        val next = all.first { it.id != id }
+        assertFalse(next.isDone)
+        assertNull(next.doneAt)
+        assertEquals("Vitaminas", next.title)
+        assertEquals(TaskPriority.MEDIUM.level, next.priority)
+        assertEquals("DAILY", next.recurrence)
+        assertEquals(TaskRecurrence.DAILY.nextAfter(due, NOW), next.dueAt)
+        assertEquals(TaskRecurrence.DAILY.nextAfter(reminder, NOW), next.reminderAt)
+        // Su recordatorio quedó programado con la alarma del sistema.
+        assertEquals(
+            listOf(FakeScheduler.Call(next.id, next.reminderAt!!)),
+            scheduler.scheduled
+        )
+    }
+
+    @Test
+    fun `toggleDone en tarea recurrente sin fechas tambien regenera`() = runTest {
+        val id = repo.add("Meditar", recurrence = TaskRecurrence.WEEKLY)
+        val task = dao.getById(id)!!
+
+        repo.toggleDone(task)
+
+        assertTrue(dao.getById(id)!!.isDone)
+        val next = dao.getAll().first { it.id != id }
+        assertFalse(next.isDone)
+        assertNull(next.dueAt)
+        assertNull(next.reminderAt)
+        assertEquals("WEEKLY", next.recurrence)
+        // Sin recordatorio no hay nada que programar.
+        assertTrue(scheduler.scheduled.isEmpty())
+    }
+
+    @Test
+    fun `toggleDone en tarea no recurrente no crea otra ocurrencia`() = runTest {
+        val task = addTask()
+
+        repo.toggleDone(task)
+
+        assertEquals(1, dao.getAll().size)
+        assertTrue(dao.getById(task.id)!!.isDone)
+    }
+
+    @Test
+    fun `toggleDone en tarea recurrente vencida desplaza al futuro`() = runTest {
+        // Diaria con fecha límite de hace 3 días: al completarla tarde, la
+        // siguiente no puede nacer ya vencida.
+        val overdueDue = NOW - 3 * 24 * HOUR
+        val id = repo.add("Atrasada", dueAt = overdueDue, recurrence = TaskRecurrence.DAILY)
+
+        repo.toggleDone(dao.getById(id)!!)
+
+        val next = dao.getAll().first { it.id != id }
+        assertTrue("la siguiente ocurrencia debe ser futura", next.dueAt!! > NOW)
+    }
+
+    @Test
+    fun `updateDetails cambia la recurrencia`() = runTest {
+        val task = addTask()
+
+        repo.updateDetails(task, task.title, TaskPriority.NONE, null, TaskRecurrence.MONTHLY)
+        assertEquals("MONTHLY", dao.getById(task.id)!!.recurrence)
+
+        repo.updateDetails(
+            dao.getById(task.id)!!, task.title, TaskPriority.NONE, null, TaskRecurrence.NONE
+        )
+        assertNull(dao.getById(task.id)!!.recurrence)
+    }
+
+    @Test
+    fun `toCode y fromCode son consistentes con lo que guarda el repositorio`() = runTest {
+        TaskRecurrence.entries.forEach { recurrence ->
+            val id = repo.add("t", recurrence = recurrence)
+            assertEquals(
+                recurrence.toCode(),
+                dao.getById(id)!!.recurrence
+            )
+        }
     }
 }

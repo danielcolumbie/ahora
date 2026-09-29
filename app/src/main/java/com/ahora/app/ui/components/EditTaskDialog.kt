@@ -18,23 +18,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.ui.theme.Spacing
 
 /**
- * Diálogo para editar una tarea: texto, prioridad y fecha límite
- * (ETAPA 10). Devuelve los tres valores al confirmar.
+ * Diálogo para editar una tarea: texto, prioridad, fecha límite
+ * (ETAPA 10) y recurrencia (ETAPA 11). Devuelve los cuatro valores al
+ * confirmar.
  */
 @Composable
 fun EditTaskDialog(
     initialText: String,
     initialPriority: TaskPriority = TaskPriority.NONE,
     initialDueAt: Long? = null,
+    initialRecurrence: TaskRecurrence = TaskRecurrence.NONE,
     onDismiss: () -> Unit,
-    onConfirm: (String, TaskPriority, Long?) -> Unit
+    onConfirm: (String, TaskPriority, Long?, TaskRecurrence) -> Unit
 ) {
     var text by remember { mutableStateOf(initialText) }
     var priority by remember { mutableStateOf(initialPriority) }
     var dueAt by remember { mutableStateOf(initialDueAt) }
+    var recurrence by remember { mutableStateOf(initialRecurrence) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -47,7 +51,7 @@ fun EditTaskDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        if (text.isNotBlank()) onConfirm(text, priority, dueAt)
+                        if (text.isNotBlank()) onConfirm(text, priority, dueAt, recurrence)
                     }),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -56,13 +60,15 @@ fun EditTaskDialog(
                     priority = priority,
                     onPriorityChange = { priority = it },
                     dueAt = dueAt,
-                    onDueAtChange = { dueAt = it }
+                    onDueAtChange = { dueAt = it },
+                    recurrence = recurrence,
+                    onRecurrenceChange = { recurrence = it }
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (text.isNotBlank()) onConfirm(text, priority, dueAt) },
+                onClick = { if (text.isNotBlank()) onConfirm(text, priority, dueAt, recurrence) },
                 enabled = text.isNotBlank()
             ) { Text("Guardar") }
         },

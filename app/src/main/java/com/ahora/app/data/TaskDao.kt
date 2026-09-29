@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -31,6 +32,18 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: Task): Long
+
+    /**
+     * Marca [done] como completada y crea [next] como la siguiente
+     * ocurrencia en una sola transacción: o entran las dos o ninguna.
+     * Devuelve el id de la nueva ocurrencia (para programar su alarma).
+     * Se usa al completar una tarea recurrente (ETAPA 11).
+     */
+    @Transaction
+    suspend fun insertNextOccurrence(done: Task, next: Task): Long {
+        upsert(done)
+        return upsert(next)
+    }
 
     /**
      * Inserción en lote: Room la envuelve en una sola transacción.

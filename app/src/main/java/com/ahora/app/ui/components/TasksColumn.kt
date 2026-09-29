@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.notifications.AlarmScheduler
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
@@ -50,7 +51,7 @@ fun TasksColumn(
     tasks: List<Task>,
     onToggleDone: (Task) -> Unit,
     onDelete: (Task) -> Unit,
-    onUpdateDetails: (Task, String, TaskPriority, Long?) -> Unit,
+    onUpdateDetails: (Task, String, TaskPriority, Long?, TaskRecurrence) -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
@@ -136,9 +137,10 @@ fun TasksColumn(
             initialText = task.title,
             initialPriority = TaskPriority.fromLevel(task.priority),
             initialDueAt = task.dueAt,
+            initialRecurrence = TaskRecurrence.fromCode(task.recurrence),
             onDismiss = { editingTask = null },
-            onConfirm = { title, priority, dueAt ->
-                onUpdateDetails(task, title, priority, dueAt)
+            onConfirm = { title, priority, dueAt, recurrence ->
+                onUpdateDetails(task, title, priority, dueAt, recurrence)
                 editingTask = null
             }
         )

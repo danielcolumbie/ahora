@@ -71,6 +71,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
@@ -89,10 +90,12 @@ fun HomeScreen(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var input by rememberSaveable { mutableStateOf("") }
-    // Borrador de prioridad y fecha límite: solo visibles mientras se escribe,
-    // para que la captura siga siendo rápida (ETAPA 10).
+    // Borrador de prioridad, fecha límite y recurrencia: solo visibles
+    // mientras se escribe, para que la captura siga siendo rápida
+    // (ETAPA 10 + ETAPA 11).
     var draftPriority by rememberSaveable { mutableStateOf(TaskPriority.NONE) }
     var draftDueAt by rememberSaveable { mutableStateOf<Long?>(null) }
+    var draftRecurrence by rememberSaveable { mutableStateOf(TaskRecurrence.NONE) }
     val focusRequester = remember { FocusRequester() }
 
     val app = context.applicationContext as AhoraApplication
@@ -117,10 +120,11 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 
     fun submit() {
-        viewModel.addTask(input, draftPriority, draftDueAt)
+        viewModel.addTask(input, draftPriority, draftDueAt, draftRecurrence)
         input = ""
         draftPriority = TaskPriority.NONE
         draftDueAt = null
+        draftRecurrence = TaskRecurrence.NONE
     }
 
     fun onMicClick() {
@@ -310,8 +314,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                 )
             }
 
-            // Campos de prioridad y fecha límite: aparecen solo mientras se
-            // escribe, para no entorpecer la captura rápida (ETAPA 10).
+            // Campos de prioridad, fecha límite y recurrencia: aparecen solo
+            // mientras se escribe, para no entorpecer la captura rápida
+            // (ETAPA 10 + ETAPA 11).
             AnimatedVisibility(visible = input.isNotBlank()) {
                 Column {
                     Spacer(modifier = Modifier.height(Spacing.m))
@@ -319,7 +324,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                         priority = draftPriority,
                         onPriorityChange = { draftPriority = it },
                         dueAt = draftDueAt,
-                        onDueAtChange = { draftDueAt = it }
+                        onDueAtChange = { draftDueAt = it },
+                        recurrence = draftRecurrence,
+                        onRecurrenceChange = { draftRecurrence = it }
                     )
                 }
             }

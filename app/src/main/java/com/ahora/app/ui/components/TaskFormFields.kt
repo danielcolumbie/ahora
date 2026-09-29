@@ -26,10 +26,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.ui.theme.Spacing
 
 /**
- * Selector de prioridad y fecha límite de una tarea (ETAPA 10).
+ * Selector de prioridad, fecha límite y recurrencia de una tarea
+ * (ETAPA 10 + ETAPA 11).
  *
  * Lo comparten la creación rápida (HomeScreen) y el diálogo de edición:
  * un solo componente, un solo comportamiento. Sin dependencias nuevas:
@@ -38,7 +40,8 @@ import com.ahora.app.ui.theme.Spacing
  * (la fecha límite no lleva hora).
  *
  * La fecha se guarda como inicio del día local en milisegundos, o null
- * si la tarea no tiene fecha límite.
+ * si la tarea no tiene fecha límite. La recurrencia se elige con chips;
+ * "No se repite" es el valor por defecto.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -47,6 +50,8 @@ fun TaskFormFields(
     onPriorityChange: (TaskPriority) -> Unit,
     dueAt: Long?,
     onDueAtChange: (Long?) -> Unit,
+    recurrence: TaskRecurrence,
+    onRecurrenceChange: (TaskRecurrence) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -106,6 +111,31 @@ fun TaskFormFields(
                         }
                     }
                 )
+            }
+        }
+
+        // Recurrencia: al completar una tarea recurrente se genera la
+        // siguiente ocurrencia (ETAPA 11). Cinco opciones excluyentes.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = "Se repite",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                TaskRecurrence.entries.forEach { option ->
+                    FilterChip(
+                        selected = recurrence == option,
+                        onClick = { onRecurrenceChange(option) },
+                        label = { Text(option.label) }
+                    )
+                }
             }
         }
     }

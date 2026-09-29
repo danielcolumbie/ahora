@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
 
@@ -111,8 +113,10 @@ fun TaskRow(
             )
             // Metadatos en pills neutras (el color solo comunica: prioridad
             // alta o fecha vencida). Sin metadatos, la fila queda limpia.
+            val recurrence = TaskRecurrence.fromCode(task.recurrence)
             val hasMeta = priority != TaskPriority.NONE ||
-                task.dueAt != null || task.reminderAt != null
+                task.dueAt != null || task.reminderAt != null ||
+                recurrence != TaskRecurrence.NONE
             if (hasMeta) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 FlowRow(
@@ -127,6 +131,9 @@ fun TaskRow(
                     }
                     task.reminderAt?.let { at ->
                         ReminderPill(label = formatReminderLabel(at))
+                    }
+                    if (recurrence != TaskRecurrence.NONE) {
+                        RecurrencePill(recurrence = recurrence)
                     }
                 }
             }
@@ -215,6 +222,12 @@ private fun DuePill(dueAt: Long) {
         contentColor = if (overdue) MaterialTheme.colorScheme.error
         else MaterialTheme.colorScheme.onSurfaceVariant
     )
+}
+
+/** Repetición con la frecuencia (ETAPA 11). Neutra como las demás pills. */
+@Composable
+private fun RecurrencePill(recurrence: TaskRecurrence) {
+    MetaPill(icon = Icons.Outlined.Repeat, label = recurrence.label)
 }
 
 /**

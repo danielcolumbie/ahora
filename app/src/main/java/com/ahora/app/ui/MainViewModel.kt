@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ahora.app.data.SettingsRepository
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.di.AppContainer
 import com.ahora.app.domain.TaskRepository
 import com.ahora.app.notifications.AlarmScheduler
@@ -127,11 +128,12 @@ class MainViewModel(
     fun addTask(
         title: String,
         priority: TaskPriority = TaskPriority.NONE,
-        dueAt: Long? = null
+        dueAt: Long? = null,
+        recurrence: TaskRecurrence = TaskRecurrence.NONE
     ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.add(title, priority, dueAt) }
+            runCatching { repository.add(title, priority, dueAt, recurrence) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar la tarea")) }
         }
     }
@@ -152,10 +154,16 @@ class MainViewModel(
             .onFailure { _events.emit(UiEvent.Message("No se pudo deshacer")) }
     }
 
-    fun updateDetails(task: Task, title: String, priority: TaskPriority, dueAt: Long?) {
+    fun updateDetails(
+        task: Task,
+        title: String,
+        priority: TaskPriority,
+        dueAt: Long?,
+        recurrence: TaskRecurrence = TaskRecurrence.NONE
+    ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.updateDetails(task, title, priority, dueAt) }
+            runCatching { repository.updateDetails(task, title, priority, dueAt, recurrence) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar el cambio")) }
         }
     }

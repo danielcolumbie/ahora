@@ -4,7 +4,10 @@ import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.data.TaskPriority
+import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.data.buildSearchPattern
+import com.ahora.app.data.nextAfter
+import com.ahora.app.data.toCode
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 
@@ -38,14 +41,23 @@ class TaskRepository(
     suspend fun add(
         title: String,
         priority: TaskPriority = TaskPriority.NONE,
-        dueAt: Long? = null
+        dueAt: Long? = null,
+        recurrence: TaskRecurrence = TaskRecurrence.NONE
     ): Long {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
-        return dao.upsert(Task(title = clean, priority = priority.level, dueAt = dueAt))
+        return dao.upsert(
+            Task(
+                title = clean,
+                priority = priority.level,
+                dueAt = dueAt,
+                recurrence = recurrence.toCode()
+            )
+        )
     }
 
     suspend fun toggleDone(task: Task) {
+        val recurrence = TaskRecurrence.fromCode(task.recurrence)
         val updated = if (task.isDone) {
             task.copy(isDone = false, doneAt = null)
         } else {
@@ -53,13 +65,35 @@ class TaskRepository(
             // si no, el pill quedaría obsoleto para siempre.
             task.copy(isDone = true, doneAt = clock(), reminderAt = null)
         }
-        dao.upsert(updated)
-        if (updated.isDone) {
+        if (recurrence != TaskRecurrence.NONE && !task.isDone) {
+            // Tarea recurrente completada (ETAPA 11): la ocurrencia queda
+            // marcada como hecha y se genera la siguiente, con su fecha
+            // límite y su recordatorio desplazados (nunca en el pasado).
+            // La siguiente ocurrencia conserva el recordatorio: si la
+            // tarea sonaba cada día a las 8, la próxima también.
+            val now = clock()
+            val nextDueAt = task.dueAt?.let { recurrence.nextAfter(it, now) }
+            val nextReminderAt = task.reminderAt?.let { recurrence.nextAfter(it, now) }
+            val next = Task(
+                title = task.title,
+                createdAt = now,
+                reminderAt = nextReminderAt,
+                priority = task.priority,
+                dueAt = nextDueAt,
+                recurrence = recurrence.toCode()
+            )
+            val nextId = dao.insertNextOccurrence(updated, next)
             scheduler.cancel(task.id)
+            nextReminderAt?.let { scheduler.schedule(nextId, it) }
         } else {
-            // Al desmarcar, se recupera el recordatorio si sigue siendo futuro.
-            updated.reminderAt?.let { at ->
-                if (at > clock()) scheduler.schedule(task.id, at)
+            dao.upsert(updated)
+            if (updated.isDone) {
+                scheduler.cancel(task.id)
+            } else {
+                // Al desmarcar, se recupera el recordatorio si sigue siendo futuro.
+                updated.reminderAt?.let { at ->
+                    if (at > clock()) scheduler.schedule(task.id, at)
+                }
             }
         }
     }
@@ -68,11 +102,19 @@ class TaskRepository(
         task: Task,
         title: String,
         priority: TaskPriority,
-        dueAt: Long?
+        dueAt: Long?,
+        recurrence: TaskRecurrence = TaskRecurrence.NONE
     ) {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
-        dao.upsert(task.copy(title = clean, priority = priority.level, dueAt = dueAt))
+        dao.upsert(
+            task.copy(
+                title = clean,
+                priority = priority.level,
+                dueAt = dueAt,
+                recurrence = recurrence.toCode()
+            )
+        )
     }
 
     /** Elimina y devuelve la tarea para poder deshacer. */

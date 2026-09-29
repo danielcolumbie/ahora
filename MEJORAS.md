@@ -35,6 +35,17 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Changelog
 
+### 1.10.0 (2026-09-29) — recurrencia (ETAPA 11)
+- **Nuevo: tareas recurrentes** (Sin repetición / Todos los días / Entre semana / Semanal / Mensual). Se elige al crear (campos bajo la barra de captura mientras escribes, junto a prioridad y fecha) y al editar (mismo componente `TaskFormFields` ampliado). En la fila se muestra como pill con icono de repetición, neutra como las demás.
+- **Al completar una tarea recurrente, la ocurrencia queda marcada como hecha y se genera la siguiente automáticamente**, con su fecha límite y su recordatorio desplazados según la regla. La siguiente ocurrencia **conserva el recordatorio**: si la tarea sonaba cada día a las 8:00, la próxima también suena a las 8:00 (la alarma se reprograma con el sistema, sin duplicados: la vieja se cancela primero).
+- **Nunca nace vencida**: si completas tarde una tarea atrasada, la siguiente ocurrencia avanza hasta quedar en el futuro. El avance usa la hora local (java.time), no 24h fijas: sobrevive a los cambios de horario (probado con el día de 25 horas).
+- **Sin cambios de base de datos**: la columna `recurrence` ya existía desde el schema v1 reservada para esto; se guarda el código (`DAILY`, `WEEKDAYS`, `WEEKLY`, `MONTHLY`) o NULL si no se repite. Sin migración, ningún dato previo cambia de significado. El respaldo JSON ya la incluía.
+- 17 pruebas nuevas (114 JVM en total, todas verdes): enum y mapeo de códigos (3), cálculo de siguiente ocurrencia con zona fija America/Havana — diaria, entre semana (salta sábado/domingo), semanal, mensual (31 ene → 28 feb), completar tarde, cambio de horario con America/New_York (10), y repositorio — completar genera la siguiente, conserva recordatorio y lo reprograma, sin fechas también regenera, no recurrente no duplica, editar recurrencia (7).
+- Sin dependencias nuevas, todo offline. Sin polling ni servicios: la recurrencia vive en el evento de completar, no en un worker periódico.
+- **Qué NO se hizo**: intervalos personalizados (cada N días, días específicos de la semana), "repetir X veces y parar", ni deshacer la regeneración al desmarcar (desmarcar solo revive la ocurrencia marcada; la siguiente ya generada sigue ahí). Las ocurrencias completadas se acumulan en la lista de hechas como cualquier tarea completada.
+- **Próxima etapa pendiente**: ETAPA 12 — Widget.
+- Nota: el worker de tests de Gradle (`testDebugUnitTest`) sigue roto en este entorno (NPE en `SuiteTestClassProcessor`); los tests JVM se ejecutaron vía JUnitCore directo sobre las clases compiladas (classpath = `debugUnitTestRuntimeClasspath` con los `classes.jar` extraídos de los AAR; el `android.jar` va AL FINAL para no opacar el `org.json:json` real con sus stubs).
+
 ### 1.9.0 (2026-09-29) — prioridades y fechas (ETAPA 10)
 - **Nuevo: prioridad por tarea** (Sin prioridad / Baja / Media / Alta). Se elige al crear (campos que aparecen bajo la barra de captura mientras escribes) y al editar (diálogo de edición ampliado con el mismo componente `TaskFormFields`). En la fila se muestra como pill con bandera: Alta en rojo, Media en terciario, Baja neutra.
 - **Nuevo: fecha límite por tarea** (solo día, sin hora). Atajos Hoy/Mañana + selector de día de Material3. En la fila se muestra como pill con calendario ("Hoy", "Mañana", "Ayer", "3 oct"); en rojo solo si ya venció.
