@@ -2,7 +2,6 @@
 # Se envía como Merge Request al repo fdroiddata:
 #   https://gitlab.com/fdroid/fdroiddata
 # El archivo debe llamarse metadata/com.ahora.app.yml
-# Sustituir danielcolumbie por el usuario real de GitHub antes de enviarlo.
 
 Categories:
   - Productivity
@@ -32,13 +31,13 @@ RepoType: git
 Repo: https://github.com/danielcolumbie/ahora.git
 
 Builds:
-  - versionName: 1.0.0
-    versionCode: 1
-    commit: v1.0.0
+  - versionName: 1.1.0
+    versionCode: 2
+    commit: v1.1.0
     gradle:
       - yes
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.0
-CurrentVersionCode: 1
+CurrentVersion: 1.1.0
+CurrentVersionCode: 2
