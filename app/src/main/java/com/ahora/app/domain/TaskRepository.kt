@@ -3,6 +3,7 @@ package com.ahora.app.domain
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
+import com.ahora.app.data.buildSearchPattern
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 
@@ -23,6 +24,15 @@ class TaskRepository(
     fun observeAll(): Flow<List<Task>> = dao.observeAll()
 
     fun observePending(): Flow<List<Task>> = dao.observePending()
+
+    /**
+     * Busca tareas por título. Con la consulta vacía devuelve todas (así la
+     * pantalla "Todas" usa un único flujo para los dos estados). La entrada
+     * se consulta con debounce en el ViewModel: no se golpea la BD en cada
+     * tecla, y `flatMapLatest` cancela la consulta anterior si llega otra.
+     */
+    fun search(query: String): Flow<List<Task>> =
+        if (query.isBlank()) observeAll() else dao.search(buildSearchPattern(query))
 
     suspend fun add(title: String): Long {
         val clean = title.trim()

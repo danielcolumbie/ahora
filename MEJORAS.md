@@ -14,7 +14,7 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - Nada se publica en tiendas sin aprobación de Daniel.
 
 ## Backlog (orden de prioridad)
-1. Búsqueda de tareas en "Todas".
+1. ~~Búsqueda de tareas en "Todas".~~ ✅ hecho en 1.8.0 (ETAPA 9).
 2. Prioridades (alta/media/baja) con color.
 3. Fechas de vencimiento con selector de fecha visual.
 4. Etiquetas/categorías con colores.
@@ -34,6 +34,14 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+
+### 1.8.0 (2026-09-29) — búsqueda de tareas (ETAPA 9)
+- **Nuevo: buscar en "Todas".** Campo de búsqueda sobre la lista: escribe y filtra por título al instante (insensible a mayúsculas). Muestra el conteo ("3 resultados") y un estado elegante de "Sin resultados" cuando nada coincide; la X limpia la búsqueda.
+- **Rendimiento**: la consulta es un `LIKE` en Room (corre en el hilo de la BD, no en la UI); el texto se consulta con debounce de 300 ms y `flatMapLatest` cancela la búsqueda anterior si sigues escribiendo. Sin FTS ni columnas nuevas: sin migración de base de datos, sin peso extra en el APK (mismo tamaño que 1.7.0).
+- Los caracteres `%`, `_` y `\` se buscan como texto literal (escapados con `ESCAPE '\'`): buscar "100%" ya no devuelve "1000 correos" por accidente.
+- Sin texto, la pantalla se comporta exactamente igual que antes (un único flujo sirve ambos estados).
+- 10 pruebas nuevas (72 JVM en total, todas verdes): construcción del patrón LIKE (6) y búsqueda en el repositorio con DAO falso (4: vacía, mayúsculas, comodines literales, orden pendientes-primero). Pruebas instrumentadas del `search` real añadidas a `TaskDaoTest` (se ejecutan en dispositivo; compilan OK).
+- Nota: las tildes no se normalizan ("cafe" no encuentra "café"); documentado como limitación conocida, no como bug.
 
 ### 1.7.0 (2026-09-29) — rediseño visual minimalista (ETAPA 8)
 - Nuevo sistema de espaciado (`ui/theme/Spacing`): toda la UI usa una escala única (2/4/8/12/16/20/24/32dp); se eliminaron los paddings arbitrarios. Test de invariantes `SpacingTest`.

@@ -27,7 +27,9 @@ import com.ahora.app.ui.theme.Spacing
 fun EmptyState(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
-    showAddButton: Boolean = true
+    showAddButton: Boolean = true,
+    title: String = "Todo despejado.",
+    subtitle: String = "Disfruta el momento."
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -45,14 +47,14 @@ fun EmptyState(
                 .padding(horizontal = Spacing.xxl)
         ) {
             Text(
-                text = "Todo despejado.",
+                text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(Spacing.m))
             Text(
-                text = "Disfruta el momento.",
+                text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

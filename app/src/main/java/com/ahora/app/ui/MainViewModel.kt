@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -59,6 +61,29 @@ class MainViewModel(
 
     val allTasks: StateFlow<List<Task>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Texto de búsqueda de la pantalla "Todas". Los resultados se consultan
+     * con debounce de 300 ms (no se golpea Room en cada tecla) y
+     * `flatMapLatest` cancela la consulta anterior si el texto cambia antes
+     * de que emita. Con la consulta vacía equivale a [allTasks].
+     */
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val searchResults: StateFlow<List<Task>> = _searchQuery
+        .debounce(300)
+        .flatMapLatest { repository.search(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
+    }
 
     // Buffer de 1: emitir nunca suspende aunque ninguna pantalla esté
     // recolectando (p. ej. durante una transición de navegación). Sin esto,

@@ -2,8 +2,9 @@ package com.ahora.app.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -45,73 +46,104 @@ class SettingsRepositoryTest {
 
     /**
      * Cierra el DataStore para poder abrir otra instancia sobre el mismo
-     * archivo. DataStore libera el archivo al cancelarse su scope.
+     * archivo. Usa cancelAndJoin (suspend) en vez de cancel() a secas:
+     * espera a que el scope termine de liberar el archivo antes de
+     * crear la segunda instancia, eliminando la carrera entre ambas.
+     * Es el mismo patrón que usa AndroidX en
+     * testCreateDataStore_withSameFileAsInactiveDataStore.
      */
-    private fun closeStore(scope: CoroutineScope) {
-        scope.cancel()
+    private suspend fun closeStore(scope: CoroutineScope) {
+        scope.coroutineContext[Job]!!.cancelAndJoin()
     }
 
     @Test
     fun `el tema por defecto es automatico`() = runTest {
         val scope = storeScope()
-        assertEquals(ThemeMode.SYSTEM, repository(scope, freshFile()).themeMode.first())
-        scope.cancel()
+        try {
+            assertEquals(ThemeMode.SYSTEM, repository(scope, freshFile()).themeMode.first())
+        } finally {
+            closeStore(scope)
+        }
     }
 
     @Test
     fun `cambiar el tema persiste`() = runTest {
         val file = freshFile()
         val scope1 = storeScope()
-        val repo1 = repository(scope1, file)
-        repo1.setThemeMode(ThemeMode.DARK)
-        assertEquals(ThemeMode.DARK, repo1.themeMode.first())
-        closeStore(scope1)
+        try {
+            val repo1 = repository(scope1, file)
+            repo1.setThemeMode(ThemeMode.DARK)
+            assertEquals(ThemeMode.DARK, repo1.themeMode.first())
+        } finally {
+            closeStore(scope1)
+        }
 
         val scope2 = storeScope()
-        assertEquals(ThemeMode.DARK, repository(scope2, file).themeMode.first())
-        scope2.cancel()
+        try {
+            assertEquals(ThemeMode.DARK, repository(scope2, file).themeMode.first())
+        } finally {
+            closeStore(scope2)
+        }
     }
 
     @Test
     fun `las notificaciones vienen activadas por defecto`() = runTest {
         val scope = storeScope()
-        assertTrue(repository(scope, freshFile()).notificationsEnabled.first())
-        scope.cancel()
+        try {
+            assertTrue(repository(scope, freshFile()).notificationsEnabled.first())
+        } finally {
+            closeStore(scope)
+        }
     }
 
     @Test
     fun `apagar notificaciones persiste`() = runTest {
         val file = freshFile()
         val scope1 = storeScope()
-        val repo1 = repository(scope1, file)
-        repo1.setNotificationsEnabled(false)
-        assertFalse(repo1.notificationsEnabled.first())
-        closeStore(scope1)
+        try {
+            val repo1 = repository(scope1, file)
+            repo1.setNotificationsEnabled(false)
+            assertFalse(repo1.notificationsEnabled.first())
+        } finally {
+            closeStore(scope1)
+        }
 
         // Una segunda instancia sobre el mismo archivo ve lo guardado.
         val scope2 = storeScope()
-        assertFalse(repository(scope2, file).notificationsEnabled.first())
-        scope2.cancel()
+        try {
+            assertFalse(repository(scope2, file).notificationsEnabled.first())
+        } finally {
+            closeStore(scope2)
+        }
     }
 
     @Test
     fun `el aviso de alarmas exactas no viene descartado por defecto`() = runTest {
         val scope = storeScope()
-        assertFalse(repository(scope, freshFile()).exactAlarmNudgeDismissed.first())
-        scope.cancel()
+        try {
+            assertFalse(repository(scope, freshFile()).exactAlarmNudgeDismissed.first())
+        } finally {
+            closeStore(scope)
+        }
     }
 
     @Test
     fun `descartar el aviso de alarmas exactas persiste`() = runTest {
         val file = freshFile()
         val scope1 = storeScope()
-        val repo1 = repository(scope1, file)
-        repo1.setExactAlarmNudgeDismissed(true)
-        assertTrue(repo1.exactAlarmNudgeDismissed.first())
-        closeStore(scope1)
+        try {
+            val repo1 = repository(scope1, file)
+            repo1.setExactAlarmNudgeDismissed(true)
+            assertTrue(repo1.exactAlarmNudgeDismissed.first())
+        } finally {
+            closeStore(scope1)
+        }
 
         val scope2 = storeScope()
-        assertTrue(repository(scope2, file).exactAlarmNudgeDismissed.first())
-        scope2.cancel()
+        try {
+            assertTrue(repository(scope2, file).exactAlarmNudgeDismissed.first())
+        } finally {
+            closeStore(scope2)
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.ahora.app.data.TaskDao
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -38,6 +39,36 @@ class TaskRepositoryTest {
 
         override fun observePending(): Flow<List<Task>> =
             tasks.map { list -> list.filter { !it.isDone } }
+
+        /**
+         * Emula el LIKE de Room con `ESCAPE '\'`: el patrón llega como
+         * %<texto escapado>% desde [com.ahora.app.data.buildSearchPattern].
+         * Se des-escapa y se busca como subcadena (LIKE es insensible a
+         * mayúsculas en ASCII), con el mismo orden que la consulta real.
+         */
+        override fun search(pattern: String): Flow<List<Task>> =
+            tasks.map { list ->
+                val needle = unescapeLike(pattern)
+                list.filter { it.title.contains(needle, ignoreCase = true) }
+                    .sortedWith(compareBy<Task> { it.isDone }.thenByDescending { it.createdAt })
+            }
+
+        private fun unescapeLike(pattern: String): String {
+            val inner = pattern.removePrefix("%").removeSuffix("%")
+            val out = StringBuilder(inner.length)
+            var i = 0
+            while (i < inner.length) {
+                val c = inner[i]
+                if (c == '\\' && i + 1 < inner.length) {
+                    out.append(inner[i + 1])
+                    i += 2
+                } else {
+                    out.append(c)
+                    i++
+                }
+            }
+            return out.toString()
+        }
 
         override suspend fun upsert(task: Task): Long {
             val id = if (task.id == 0L) nextId++ else task.id
@@ -387,5 +418,45 @@ class TaskRepositoryTest {
 
         assertEquals(2, result.imported)
         assertEquals(2, dao.getAll().size)
+    }
+
+    @Test
+    fun `search con consulta vacia devuelve todas`() = runTest {
+        repo.add("Comprar pan")
+        repo.add("Llamar al banco")
+
+        assertEquals(2, repo.search("").first().size)
+        assertEquals(2, repo.search("   ").first().size)
+    }
+
+    @Test
+    fun `search filtra por titulo sin distinguir mayusculas`() = runTest {
+        repo.add("Comprar PAN")
+        repo.add("Llamar al banco")
+
+        val resultados = repo.search("pan").first()
+        assertEquals(1, resultados.size)
+        assertEquals("Comprar PAN", resultados[0].title)
+    }
+
+    @Test
+    fun `search trata los comodines como texto literal`() = runTest {
+        repo.add("Oferta 100% real")
+        repo.add("Revisar 1000 correos")
+
+        val resultados = repo.search("100%").first()
+        assertEquals(1, resultados.size)
+        assertEquals("Oferta 100% real", resultados[0].title)
+    }
+
+    @Test
+    fun `search pone las pendientes primero como observeAll`() = runTest {
+        dao.upsert(Task(title = "Comprar pan", isDone = true, createdAt = NOW))
+        dao.upsert(Task(title = "Comprar leche", isDone = false, createdAt = NOW - 1))
+
+        val resultados = repo.search("comprar").first()
+        assertEquals(2, resultados.size)
+        assertEquals("Comprar leche", resultados[0].title)
+        assertTrue(resultados[1].isDone)
     }
 }

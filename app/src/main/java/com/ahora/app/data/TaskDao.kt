@@ -15,6 +15,14 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isDone = 0 ORDER BY createdAt DESC")
     fun observePending(): Flow<List<Task>>
 
+    /**
+     * Búsqueda por título. [pattern] ya viene escapado desde
+     * [buildSearchPattern] (`%`, `_` y `\` son literales, no comodines).
+     * El orden es el mismo que [observeAll]: pendientes primero.
+     */
+    @Query("SELECT * FROM tasks WHERE title LIKE :pattern ESCAPE '\\' ORDER BY isDone ASC, createdAt DESC")
+    fun search(pattern: String): Flow<List<Task>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: Task): Long
 

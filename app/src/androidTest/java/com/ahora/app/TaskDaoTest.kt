@@ -112,4 +112,39 @@ class TaskDaoTest {
         assertEquals(1, pendientes.size)
         assertEquals("Futura", pendientes[0].title)
     }
+
+    @Test
+    fun searchFiltraPorTituloIgnorandoMayusculas() = runBlocking {
+        db.taskDao().upsert(tarea("Comprar PAN"))
+        db.taskDao().upsert(tarea("Llamar al banco"))
+
+        val resultados =
+            db.taskDao().search(com.ahora.app.data.buildSearchPattern("pan")).first()
+        assertEquals(1, resultados.size)
+        assertEquals("Comprar PAN", resultados[0].title)
+    }
+
+    @Test
+    fun searchNoTrataLosComodinesComoPatron() = runBlocking {
+        db.taskDao().upsert(tarea("Oferta 100% real"))
+        db.taskDao().upsert(tarea("Revisar 1000 correos"))
+
+        // Sin el escape, "100%" como LIKE matchearía "1000 correos" también.
+        val resultados =
+            db.taskDao().search(com.ahora.app.data.buildSearchPattern("100%")).first()
+        assertEquals(1, resultados.size)
+        assertEquals("Oferta 100% real", resultados[0].title)
+    }
+
+    @Test
+    fun searchOrdenaPendientesPrimero() = runBlocking {
+        db.taskDao().upsert(tarea("Comprar pan", done = true))
+        db.taskDao().upsert(tarea("Comprar leche"))
+
+        val resultados =
+            db.taskDao().search(com.ahora.app.data.buildSearchPattern("comprar")).first()
+        assertEquals(2, resultados.size)
+        assertEquals("Comprar leche", resultados[0].title)
+        assertTrue(resultados[1].isDone)
+    }
 }
