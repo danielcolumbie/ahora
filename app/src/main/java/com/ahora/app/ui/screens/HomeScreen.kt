@@ -77,7 +77,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
@@ -94,6 +93,7 @@ import com.ahora.app.ui.components.TasksColumn
 import com.ahora.app.ui.components.rememberCreationDraft
 import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
@@ -508,6 +508,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     onSetReminder = viewModel::setReminder,
                                     onClearReminder = viewModel::clearReminder,
                                     onPastReminder = viewModel::pastReminderSelected,
+                                    onNotifPermissionDenied = viewModel::notifPermissionDenied,
                                     alarmScheduler = viewModel.scheduler,
                                     scrollToTopEvents = viewModel.scrollToTopEvents,
                                     modifier = Modifier.weight(1f),
@@ -528,6 +529,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                             onSetReminder = viewModel::setReminder,
                             onClearReminder = viewModel::clearReminder,
                             onPastReminder = viewModel::pastReminderSelected,
+                            onNotifPermissionDenied = viewModel::notifPermissionDenied,
                             alarmScheduler = viewModel.scheduler,
                             modifier = detailModifier
                         )
@@ -573,14 +575,14 @@ private fun PulseRing(delayMillis: Int) {
     )
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(Sizes.pulseRing)
             .graphicsLayer {
                 scaleX = ringScale
                 scaleY = ringScale
                 alpha = ringAlpha
             }
             .clip(CircleShape)
-            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            .border(Sizes.pulseRingStroke, MaterialTheme.colorScheme.primary, CircleShape)
     )
 }
 

@@ -83,7 +83,7 @@ fun AdvancedCreationDialog(
                     if (reminderAt == null) {
                         Text(
                             text = "Recordatorio",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         TextButton(onClick = { showReminderPicker = true }) {
@@ -94,6 +94,10 @@ fun AdvancedCreationDialog(
                             selected = true,
                             onClick = { showReminderPicker = true },
                             label = { Text(formatReminderLabel(reminderAt)) },
+                            // Seleccionado con el acento propio (auditoría
+                            // 1.25.0): sin esto caía al `secondaryContainer`
+                            // por defecto de M3.
+                            colors = ahoraSelectedChipColors(),
                             trailingIcon = {
                                 IconButton(onClick = { draft.setReminderAtManual(null) }) {
                                     Icon(

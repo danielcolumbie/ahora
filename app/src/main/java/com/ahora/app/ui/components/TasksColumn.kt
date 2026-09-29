@@ -62,6 +62,8 @@ fun TasksColumn(
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
+    /** El usuario negó el permiso de notificaciones al guardar un recordatorio. */
+    onNotifPermissionDenied: () -> Unit,
     alarmScheduler: AlarmScheduler,
     scrollToTopEvents: SharedFlow<Unit>,
     modifier: Modifier = Modifier,
@@ -178,6 +180,7 @@ fun TasksColumn(
         onDismiss = { reminderTask = null },
         onSetReminder = onSetReminder,
         onPastReminder = onPastReminder,
+        onNotifPermissionDenied = onNotifPermissionDenied,
         alarmScheduler = alarmScheduler
     )
 }

@@ -18,10 +18,13 @@ Un solo acento. El color comunica estado, no decora.
 | `surface` / `onSurface` | `#FFFFFF` / `#171714` | `#141417` / `#F5F3EE` | Superficies (diálogos, barra) |
 | `surfaceVariant` / `onSurfaceVariant` | `#EDEAE2` / `#625F58` | `#1D1D22` / `#A8A6A0` | Pills neutras, metadatos |
 | `outlineVariant` | tinta al 8% (`#14171714`) | papel al 10% (`#1AF5F3EE`) | Divisores sutiles entre filas |
+| `surfaceContainer` / `surfaceContainerHigh` | `#FFFFFF` (= `surface`) | `#141417` (= `surface`) | Contenedores de M3: los diálogos (`AlertDialog`, `DatePickerDialog`) y los menús (`DropdownMenu`) usan estos tokens por defecto; definidos iguales a `surface` en la 1.25.0 para que no caigan al gris frío por defecto de M3 |
 | `error` / `onError` | `#B3261E` | `#F2B8B5` | Solo: prioridad alta y fecha vencida |
 
 Nota: los tokens no listados usan el default de Material 3 (p. ej. `outline`,
-`onError`, `secondaryContainer`).
+`onError`, `secondaryContainer`). `secondaryContainer` no se usa en la app:
+los chips seleccionados usan el `primaryContainer` propio vía
+`ahoraSelectedChipColors()` (ver §5).
 
 Reglas:
 - Las pills de metadatos son **neutras** (`surfaceVariant` + `onSurfaceVariant`).
@@ -69,6 +72,8 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
 | `pillIcon` | 12dp (`Spacing.m`) | Icono dentro de pills |
 | `settingIconBox` | 36dp | Caja del icono en las filas de ajustes |
 | `settingIcon` | 20dp | Icono dentro de la caja de ajustes |
+| `pulseRing` | 40dp | Anillo del pulso del micrófono mientras escucha |
+| `pulseRingStroke` | 2dp | Grosor del trazo del anillo del pulso |
 
 ## 5. Componentes
 
@@ -95,6 +100,12 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   El estado del borrador es un solo holder (`CreationDraftState`) con un
   único `rememberSaveable` propio: sobrevive a rotación y a muerte del
   proceso. Lo manual siempre gana sobre lo detectado.
+- **Chips (`ahoraSelectedChipColors()`, `ui/components/AhoraChips.kt`):**
+  los `FilterChip`/`InputChip` seleccionados usan `primaryContainer` +
+  `onPrimaryContainer` propios. Sin este helper caían al
+  `secondaryContainer` por defecto de M3 (lila ajeno a la paleta). Lo usan
+  los formularios (prioridad, fecha, recurrencia, recordatorio) y el
+  selector de tema de Ajustes: un solo acento en toda la app.
 - **Estado vacío:** título `titleLarge` + subtítulo `bodyMedium` +
   botón primario. Entra con fundido suave.
 - **Etiqueta de sección con contador:** la etiqueta (`titleMedium` en
@@ -189,7 +200,8 @@ sistema (`Sizes`, `Spacing`).
 
 ## 8. Estados
 
-- Vacío: ilustración + mensaje cálido, nunca un placeholder genérico.
+- Vacío: título + subtítulo + botón primario (sin ilustración: el minimalismo
+  es no añadir decoración), nunca un placeholder genérico.
 - Cargando: la lista es local y rápida; sin spinners innecesarios.
 - Error: mensajes en lenguaje humano («No se pudo guardar: ...»), con acción
   cuando aplica (Deshacer al eliminar).

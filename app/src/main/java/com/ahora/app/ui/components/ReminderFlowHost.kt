@@ -43,6 +43,8 @@ fun ReminderFlowHost(
     onDismiss: () -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onPastReminder: () -> Unit,
+    /** El usuario negó el permiso de notificaciones al guardar (auditoría 1.25.0). */
+    onNotifPermissionDenied: () -> Unit,
     alarmScheduler: AlarmScheduler
 ) {
     val context = LocalContext.current
@@ -59,6 +61,11 @@ fun ReminderFlowHost(
             pendingReminder?.let { (pendingTask, atMillis) ->
                 onSetReminder(pendingTask, atMillis)
             }
+        } else {
+            // Denegado: sin el permiso el aviso nunca llegaría; se avisa
+            // en vez de descartar la elección en silencio (auditoría 1.25.0).
+            // El recordatorio no se guarda porque no podría cumplir su función.
+            onNotifPermissionDenied()
         }
         pendingReminder = null
         onDismiss()

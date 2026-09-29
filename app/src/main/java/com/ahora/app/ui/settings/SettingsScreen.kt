@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -58,6 +57,7 @@ import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.FormSection
 import com.ahora.app.ui.components.SettingLinkRow
 import com.ahora.app.ui.components.SettingSwitchRow
+import com.ahora.app.ui.components.ahoraSelectedChipColors
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -328,7 +328,9 @@ fun SettingsScreen(
 /**
  * Selector de tema: los tres `FilterChip` usan el `primaryContainer`
  * propio de Ahora cuando están seleccionados (antes, el contenedor por
- * defecto de Material 3, ajeno a la paleta de un solo acento).
+ * defecto de Material 3, ajeno a la paleta de un solo acento). Comparte
+ * [ahoraSelectedChipColors] con los chips de los formularios: un solo
+ * acento en toda la app.
  *
  * `FlowRow` en vez de `Row` (bloque I): con la escala de fuente del
  * sistema grande, los tres chips no caben en una línea y se recortarían;
@@ -337,12 +339,7 @@ fun SettingsScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ThemeSelector(selected: Int, onSelect: (Int) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    val chipColors = FilterChipDefaults.filterChipColors(
-        selectedContainerColor = scheme.primaryContainer,
-        selectedLabelColor = scheme.onPrimaryContainer,
-        selectedLeadingIconColor = scheme.onPrimaryContainer
-    )
+    val chipColors = ahoraSelectedChipColors()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)

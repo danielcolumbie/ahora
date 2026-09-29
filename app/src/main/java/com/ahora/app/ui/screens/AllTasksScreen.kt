@@ -148,8 +148,11 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     ),
                     shape = RoundedCornerShape(Spacing.l),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        // Igual que la barra de captura de Hoy
+                        // (auditoría 1.25.0): `surfaceContainerLow` no está
+                        // en la paleta de Ahora y caía al default de M3.
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     )
@@ -185,7 +188,10 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                                         Text(
                                             text = if (tasks.size == 1) "1 resultado"
                                             else "${tasks.size} resultados",
-                                            style = MaterialTheme.typography.labelMedium,
+                                            // `labelSmall`: `labelMedium` no
+                                            // está en AhoraTypography
+                                            // (auditoría 1.25.0).
+                                            style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Spacer(modifier = Modifier.height(Spacing.xs))
@@ -198,6 +204,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                                         onSetReminder = viewModel::setReminder,
                                         onClearReminder = viewModel::clearReminder,
                                         onPastReminder = viewModel::pastReminderSelected,
+                                        onNotifPermissionDenied = viewModel::notifPermissionDenied,
                                         alarmScheduler = viewModel.scheduler,
                                         scrollToTopEvents = viewModel.scrollToTopEvents,
                                         modifier = Modifier.weight(1f),
@@ -216,6 +223,7 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                             onSetReminder = viewModel::setReminder,
                             onClearReminder = viewModel::clearReminder,
                             onPastReminder = viewModel::pastReminderSelected,
+                            onNotifPermissionDenied = viewModel::notifPermissionDenied,
                             alarmScheduler = viewModel.scheduler,
                             modifier = detailModifier
                         )

@@ -68,6 +68,8 @@ fun TaskDetailPanel(
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
+    /** El usuario negó el permiso de notificaciones al guardar un recordatorio. */
+    onNotifPermissionDenied: () -> Unit,
     alarmScheduler: AlarmScheduler,
     modifier: Modifier = Modifier
 ) {
@@ -172,6 +174,10 @@ fun TaskDetailPanel(
                         selected = true,
                         onClick = { showReminderPicker = true },
                         label = { Text(formatReminderLabel(reminderAt)) },
+                        // Seleccionado con el acento propio (auditoría
+                        // 1.25.0): sin esto caía al `secondaryContainer`
+                        // por defecto de M3.
+                        colors = ahoraSelectedChipColors(),
                         trailingIcon = {
                             IconButton(onClick = { onClearReminder(task) }) {
                                 Icon(
@@ -213,6 +219,7 @@ fun TaskDetailPanel(
         onDismiss = { showReminderPicker = false },
         onSetReminder = onSetReminder,
         onPastReminder = onPastReminder,
+        onNotifPermissionDenied = onNotifPermissionDenied,
         alarmScheduler = alarmScheduler
     )
 }

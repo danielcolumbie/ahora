@@ -53,6 +53,9 @@ fun TaskFormFields(
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    // Chips seleccionados con el acento propio (auditoría 1.25.0): sin
+    // esto caían al `secondaryContainer` por defecto de M3.
+    val selectedChipColors = ahoraSelectedChipColors()
 
     // Tres secciones con las etiquetas del sistema ([FormSection]): la misma
     // jerarquía que usan el diálogo de edición y el de recordatorio, para
@@ -69,7 +72,8 @@ fun TaskFormFields(
                     FilterChip(
                         selected = priority == option,
                         onClick = { onPriorityChange(option) },
-                        label = { Text(option.label) }
+                        label = { Text(option.label) },
+                        colors = selectedChipColors
                     )
                 }
             }
@@ -87,12 +91,14 @@ fun TaskFormFields(
                     FilterChip(
                         selected = false,
                         onClick = { onDueAtChange(startOfDayMillis(0)) },
-                        label = { Text("Hoy") }
+                        label = { Text("Hoy") },
+                        colors = selectedChipColors
                     )
                     FilterChip(
                         selected = false,
                         onClick = { onDueAtChange(startOfDayMillis(1)) },
-                        label = { Text("Mañana") }
+                        label = { Text("Mañana") },
+                        colors = selectedChipColors
                     )
                     TextButton(onClick = { showDatePicker = true }) {
                         Text("Elegir…")
@@ -102,6 +108,7 @@ fun TaskFormFields(
                         selected = true,
                         onClick = { showDatePicker = true },
                         label = { Text(formatDueLabel(dueAt)) },
+                        colors = selectedChipColors,
                         trailingIcon = {
                             IconButton(onClick = { onDueAtChange(null) }) {
                                 Icon(
@@ -127,7 +134,8 @@ fun TaskFormFields(
                     FilterChip(
                         selected = recurrence == option,
                         onClick = { onRecurrenceChange(option) },
-                        label = { Text(option.label) }
+                        label = { Text(option.label) },
+                        colors = selectedChipColors
                     )
                 }
             }

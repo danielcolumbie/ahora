@@ -34,4 +34,10 @@ object Sizes {
 
     /** Icono dentro de la caja de las filas de ajustes. */
     val settingIcon = 20.dp
+
+    /** Anillo del pulso del micrófono mientras escucha (auditoría 1.25.0). */
+    val pulseRing = 40.dp
+
+    /** Grosor del trazo del anillo del pulso del micrófono. */
+    val pulseRingStroke = 2.dp
 }

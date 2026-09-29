@@ -13,8 +13,8 @@ android {
         applicationId = "com.ahora.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 26
-        versionName = "1.24.0"
+        versionCode = 27
+        versionName = "1.25.0"
 
         vectorDrawables {
             useSupportLibrary = true

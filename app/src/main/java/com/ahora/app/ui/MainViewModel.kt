@@ -192,6 +192,17 @@ class MainViewModel(
         _events.emit(UiEvent.Message("Esa hora ya pasó, elige una futura"))
     }
 
+    /**
+     * El usuario negó el permiso de notificaciones justo al guardar un
+     * recordatorio (auditoría 1.25.0): antes la elección se descartaba en
+     * silencio y el recordatorio nunca sonaría sin que lo supiera. Ahora
+     * se avisa; el recordatorio no se guarda porque sin el permiso no
+     * podría avisar de todos modos.
+     */
+    fun notifPermissionDenied() = viewModelScope.launch {
+        _events.emit(UiEvent.Message("Sin permiso de notificaciones, el recordatorio no te avisará"))
+    }
+
     fun clearReminder(task: Task) = viewModelScope.launch {
         runCatching { repository.clearReminder(task) }
             .onFailure { _events.emit(UiEvent.Message("No se pudo quitar el recordatorio")) }

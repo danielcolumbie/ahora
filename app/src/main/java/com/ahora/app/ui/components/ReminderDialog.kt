@@ -67,6 +67,10 @@ fun ReminderDialog(
         is ReminderDay.Custom -> reminderInstantMillis(d.utcMillis, timeState.hour, timeState.minute)
     }
 
+    // Chips seleccionados con el acento propio (auditoría 1.25.0): sin
+    // esto caían al `secondaryContainer` por defecto de M3.
+    val selectedChipColors = ahoraSelectedChipColors()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Recordatorio") },
@@ -85,18 +89,21 @@ fun ReminderDialog(
                         FilterChip(
                             selected = day is ReminderDay.Today,
                             onClick = { day = ReminderDay.Today },
-                            label = { Text("Hoy") }
+                            label = { Text("Hoy") },
+                            colors = selectedChipColors
                         )
                         FilterChip(
                             selected = day is ReminderDay.Tomorrow,
                             onClick = { day = ReminderDay.Tomorrow },
-                            label = { Text("Mañana") }
+                            label = { Text("Mañana") },
+                            colors = selectedChipColors
                         )
                         val custom = day as? ReminderDay.Custom
                         if (custom != null) {
                             InputChip(
                                 selected = true,
                                 onClick = { showPicker = true },
+                                colors = selectedChipColors,
                                 // La fecha concreta se muestra como la fecha
                                 // límite: "Hoy", "Mañana" o "3 oct".
                                 label = {
@@ -111,7 +118,8 @@ fun ReminderDialog(
                             FilterChip(
                                 selected = false,
                                 onClick = { showPicker = true },
-                                label = { Text("Elegir…") }
+                                label = { Text("Elegir…") },
+                                colors = selectedChipColors
                             )
                         }
                         FilterChip(
@@ -123,7 +131,8 @@ fun ReminderDialog(
                                 timeOverride = inOneHour.get(Calendar.HOUR_OF_DAY) to
                                     inOneHour.get(Calendar.MINUTE)
                             },
-                            label = { Text("En 1 hora") }
+                            label = { Text("En 1 hora") },
+                            colors = selectedChipColors
                         )
                     }
                 }
