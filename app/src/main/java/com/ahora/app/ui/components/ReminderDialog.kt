@@ -56,15 +56,15 @@ fun ReminderDialog(
                 TextButton(
                     onClick = {
                         val dateMillis = dateState.selectedDateMillis ?: return@TextButton
-                        val cal = Calendar.getInstance().apply {
-                            timeInMillis = dateMillis
-                            set(Calendar.HOUR_OF_DAY, timeState.hour)
-                            set(Calendar.MINUTE, timeState.minute)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        if (cal.timeInMillis > System.currentTimeMillis()) {
-                            onConfirm(cal.timeInMillis)
+                        // El DatePicker devuelve medianoche UTC: convertir a fecha
+                        // local ANTES de fijar la hora (si no, en UTC−x cae el día anterior).
+                        val atMillis = reminderInstantMillis(
+                            dateMillisUtc = dateMillis,
+                            hour = timeState.hour,
+                            minute = timeState.minute
+                        )
+                        if (atMillis > System.currentTimeMillis()) {
+                            onConfirm(atMillis)
                         } else {
                             onDismiss()
                         }
