@@ -251,6 +251,25 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun `add con recordatorio futuro lo guarda y programa la alarma`() = runTest {
+        val at = NOW + HOUR
+        val id = repo.add("Llamar", reminderAt = at)
+        val task = dao.getById(id)!!
+
+        assertEquals(at, task.reminderAt)
+        assertEquals(listOf(FakeScheduler.Call(id, at)), scheduler.scheduled)
+    }
+
+    @Test
+    fun `add con recordatorio pasado no programa ni guarda nada`() = runTest {
+        val id = repo.add("Llamar", reminderAt = NOW - HOUR)
+        val task = dao.getById(id)!!
+
+        assertNull("el recordatorio pasado no se guarda", task.reminderAt)
+        assertTrue(scheduler.scheduled.isEmpty())
+    }
+
+    @Test
     fun `updateDetails cambia titulo prioridad y fecha y rechaza vacio`() = runTest {
         val task = addTask()
         val due = NOW + 24 * HOUR

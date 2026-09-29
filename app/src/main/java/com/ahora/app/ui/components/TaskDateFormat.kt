@@ -2,6 +2,7 @@ package com.ahora.app.ui.components
 
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -116,6 +117,17 @@ internal fun startOfDayMillis(
         .plusDays(dayOffset.toLong())
     return date.atStartOfDay(zone).toInstant().toEpochMilli()
 }
+
+/**
+ * Inicio del día local de la [fecha] dada en milisegundos.
+ * Lo usa el lenguaje natural (ETAPA 13): el parser devuelve un
+ * [LocalDate] y aquí se convierte a como se guarda la fecha límite.
+ * Función pura para poder probarla.
+ */
+internal fun startOfLocalDateMillis(
+    date: LocalDate,
+    zone: ZoneId = ZoneId.systemDefault()
+): Long = date.atStartOfDay(zone).toInstant().toEpochMilli()
 
 /**
  * Convierte una fecha límite (inicio del día local) a la medianoche UTC

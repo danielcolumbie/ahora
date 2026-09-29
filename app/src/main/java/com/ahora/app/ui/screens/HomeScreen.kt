@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,12 +73,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahora.app.AhoraApplication
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
+import com.ahora.app.domain.parseNaturalLanguage
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TaskFormFields
 import com.ahora.app.ui.components.TasksColumn
+import com.ahora.app.ui.components.formatReminderLabel
+import com.ahora.app.ui.components.startOfLocalDateMillis
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -96,7 +100,37 @@ fun HomeScreen(viewModel: MainViewModel) {
     var draftPriority by rememberSaveable { mutableStateOf(TaskPriority.NONE) }
     var draftDueAt by rememberSaveable { mutableStateOf<Long?>(null) }
     var draftRecurrence by rememberSaveable { mutableStateOf(TaskRecurrence.NONE) }
+    // Recordatorio detectado por el lenguaje natural (ETAPA 13).
+    var draftReminderAt by rememberSaveable { mutableStateOf<Long?>(null) }
+    // Si el usuario toca un chip a mano, el parser deja de tocar ese
+    // campo: lo manual siempre gana. Se rearma al vaciar el texto.
+    var manualPriority by rememberSaveable { mutableStateOf(false) }
+    var manualDueAt by rememberSaveable { mutableStateOf(false) }
+    var manualRecurrence by rememberSaveable { mutableStateOf(false) }
+    var manualReminder by rememberSaveable { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+
+    /**
+     * Lenguaje natural (ETAPA 13): cada cambio en el texto (escrito o
+     * dictado) se analiza y lo detectado alimenta los borradores, que
+     * se muestran en los chips bajo la barra: ese es el indicador de
+     * qué entendió la app. El parser es puro y barato: corre en el
+     * hilo de la UI sin despeinarse.
+     */
+    fun applyInput(text: String) {
+        input = text
+        if (text.isBlank()) {
+            manualPriority = false
+            manualDueAt = false
+            manualRecurrence = false
+            manualReminder = false
+        }
+        val parsed = parseNaturalLanguage(text)
+        if (!manualPriority) draftPriority = parsed.priority
+        if (!manualDueAt) draftDueAt = parsed.dueDate?.let(::startOfLocalDateMillis)
+        if (!manualRecurrence) draftRecurrence = parsed.recurrence
+        if (!manualReminder) draftReminderAt = parsed.reminderAt
+    }
 
     val app = context.applicationContext as AhoraApplication
     val speech = remember { app.container.createSpeechInputManager(context) }
@@ -120,11 +154,21 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 
     fun submit() {
-        viewModel.addTask(input, draftPriority, draftDueAt, draftRecurrence)
+        // El título guardado es el limpio: lo detectado ("mañana",
+        // "urgente"…) no queda pegado al nombre. Si el texto era solo
+        // lenguaje natural ("mañana"), se guarda tal cual se escribió.
+        val parsed = parseNaturalLanguage(input)
+        val title = parsed.title.ifBlank { input.trim() }
+        viewModel.addTask(title, draftPriority, draftDueAt, draftRecurrence, draftReminderAt)
         input = ""
         draftPriority = TaskPriority.NONE
         draftDueAt = null
         draftRecurrence = TaskRecurrence.NONE
+        draftReminderAt = null
+        manualPriority = false
+        manualDueAt = false
+        manualRecurrence = false
+        manualReminder = false
     }
 
     fun onMicClick() {
@@ -147,7 +191,9 @@ fun HomeScreen(viewModel: MainViewModel) {
     LaunchedEffect(speechState) {
         when (val s = speechState) {
             is SpeechInputManager.State.Result -> {
-                input = s.text
+                // El texto dictado pasa por el mismo parser que el
+                // escrito: el lenguaje natural también funciona por voz.
+                applyInput(s.text)
                 speech.consumeResult()
             }
             is SpeechInputManager.State.Error -> {
@@ -238,7 +284,7 @@ fun HomeScreen(viewModel: MainViewModel) {
             // Sin bordes: la superficie la distingue del fondo con calma.
             TextField(
                 value = input,
-                onValueChange = { input = it },
+                onValueChange = { applyInput(it) },
                 placeholder = { Text("¿Qué tienes en mente?") },
                 singleLine = true,
                 shape = RoundedCornerShape(Spacing.l),
@@ -316,18 +362,57 @@ fun HomeScreen(viewModel: MainViewModel) {
 
             // Campos de prioridad, fecha límite y recurrencia: aparecen solo
             // mientras se escribe, para no entorpecer la captura rápida
-            // (ETAPA 10 + ETAPA 11).
+            // (ETAPA 10 + ETAPA 11). El lenguaje natural (ETAPA 13) los
+            // rellena solo; si el usuario toca un chip, su elección gana.
             AnimatedVisibility(visible = input.isNotBlank()) {
                 Column {
                     Spacer(modifier = Modifier.height(Spacing.m))
                     TaskFormFields(
                         priority = draftPriority,
-                        onPriorityChange = { draftPriority = it },
+                        onPriorityChange = {
+                            draftPriority = it
+                            manualPriority = true
+                        },
                         dueAt = draftDueAt,
-                        onDueAtChange = { draftDueAt = it },
+                        onDueAtChange = {
+                            draftDueAt = it
+                            manualDueAt = true
+                        },
                         recurrence = draftRecurrence,
-                        onRecurrenceChange = { draftRecurrence = it }
+                        onRecurrenceChange = {
+                            draftRecurrence = it
+                            manualRecurrence = true
+                        }
                     )
+                    // Recordatorio detectado ("a las 3pm"): indicador con
+                    // opción de quitarlo antes de guardar.
+                    val reminderAt = draftReminderAt
+                    if (reminderAt != null) {
+                        Spacer(modifier = Modifier.height(Spacing.s))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            Text(
+                                text = "Recordatorio: ${formatReminderLabel(reminderAt)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            IconButton(
+                                onClick = {
+                                    draftReminderAt = null
+                                    manualReminder = true
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Quitar recordatorio detectado",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

@@ -129,11 +129,13 @@ class MainViewModel(
         title: String,
         priority: TaskPriority = TaskPriority.NONE,
         dueAt: Long? = null,
-        recurrence: TaskRecurrence = TaskRecurrence.NONE
+        recurrence: TaskRecurrence = TaskRecurrence.NONE,
+        /** Recordatorio del lenguaje natural (ETAPA 13), o null. */
+        reminderAt: Long? = null
     ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.add(title, priority, dueAt, recurrence) }
+            runCatching { repository.add(title, priority, dueAt, recurrence, reminderAt) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar la tarea")) }
         }
     }

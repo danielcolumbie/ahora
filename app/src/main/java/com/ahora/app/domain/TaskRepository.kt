@@ -42,18 +42,28 @@ class TaskRepository(
         title: String,
         priority: TaskPriority = TaskPriority.NONE,
         dueAt: Long? = null,
-        recurrence: TaskRecurrence = TaskRecurrence.NONE
+        recurrence: TaskRecurrence = TaskRecurrence.NONE,
+        /**
+         * Recordatorio opcional (ETAPA 13: sale del lenguaje natural,
+         * p. ej. "llamar a las 3pm"). Si ya pasó, no se programa:
+         * nunca nace una alarma en el pasado.
+         */
+        reminderAt: Long? = null
     ): Long {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
-        return dao.upsert(
+        val id = dao.upsert(
             Task(
                 title = clean,
                 priority = priority.level,
                 dueAt = dueAt,
-                recurrence = recurrence.toCode()
+                recurrence = recurrence.toCode(),
+                reminderAt = reminderAt?.takeIf { it > clock() }
             )
         )
+        val scheduled = reminderAt?.takeIf { it > clock() }
+        if (scheduled != null) scheduler.schedule(id, scheduled)
+        return id
     }
 
     suspend fun toggleDone(task: Task) {
