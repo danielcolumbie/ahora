@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -158,6 +158,15 @@ fun TasksColumn(
     // Colapsada por defecto, como en el mockup aprobado; el estado
     // sobrevive a la rotación.
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
+    // Post-auditoría (2026-09-30, B-1): al vaciarse la sección, el estado
+    // vuelve a colapsado (el mockup la define colapsada por defecto). Sin
+    // esto, al reaparecer lo hacía expandida si se había dejado abierta.
+    LaunchedEffect(completedTasks.isEmpty()) {
+        completedExpanded = resetCompletedExpanded(
+            completedEmpty = completedTasks.isEmpty(),
+            expanded = completedExpanded
+        )
+    }
     val hasCompletedSection = collapsibleCompleted && completedTasks.isNotEmpty()
 
     LazyColumn(
@@ -193,7 +202,12 @@ fun TasksColumn(
                 CompletedSectionHeader(
                     count = completedTasks.size,
                     expanded = completedExpanded,
-                    onToggle = { completedExpanded = !completedExpanded }
+                    onToggle = {
+                        // Tick de confirmación (B-2, 2026-09-30): la
+                        // sección se alterna como el checkbox de tarea.
+                        Haptics.tick(haptics)
+                        completedExpanded = !completedExpanded
+                    }
                 )
             }
             itemsIndexed(
@@ -360,7 +374,9 @@ private fun CompletedSectionHeader(
             .padding(horizontal = Spacing.s, vertical = Spacing.xs)
     ) {
         Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
+            // Chevron de trazo, como en el mockup aprobado (B-3,
+            // 2026-09-30): el filled del inicio se veía más pesado.
+            imageVector = Icons.Outlined.KeyboardArrowDown,
             // Decorativo: el estado lo anuncia el `stateDescription`
             // del encabezado, no el icono.
             contentDescription = null,
@@ -404,6 +420,15 @@ private fun CountPill(count: Int) {
         )
     }
 }
+
+/**
+ * Post-auditoría (B-1, 2026-09-30): cuando la sección de completadas se
+ * vacía, el estado vuelve a colapsado (el mockup la define colapsada por
+ * defecto); con tareas, se conserva el estado actual. Función pura para
+ * poder probarla.
+ */
+internal fun resetCompletedExpanded(completedEmpty: Boolean, expanded: Boolean): Boolean =
+    if (completedEmpty) false else expanded
 
 /**
  * Parte la lista en activas y completadas, conservando el orden de cada

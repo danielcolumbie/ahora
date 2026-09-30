@@ -61,4 +61,24 @@ class CompletedSectionTest {
     fun `contraida se anuncia como contraida`() {
         assertEquals("Contraída", completedHeaderStateDescription(expanded = false))
     }
+
+    @Test
+    fun `al vaciarse expandida vuelve a colapsado`() {
+        assertEquals(false, resetCompletedExpanded(completedEmpty = true, expanded = true))
+    }
+
+    @Test
+    fun `al vaciarse colapsada sigue colapsada`() {
+        assertEquals(false, resetCompletedExpanded(completedEmpty = true, expanded = false))
+    }
+
+    @Test
+    fun `con tareas conserva expandida`() {
+        assertEquals(true, resetCompletedExpanded(completedEmpty = false, expanded = true))
+    }
+
+    @Test
+    fun `con tareas conserva colapsada`() {
+        assertEquals(false, resetCompletedExpanded(completedEmpty = false, expanded = false))
+    }
 }

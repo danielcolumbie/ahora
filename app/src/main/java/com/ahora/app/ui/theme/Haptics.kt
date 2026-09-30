@@ -23,6 +23,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
  * Regla de uso: SOLO como confirmación de una acción completada, nunca
  * como decoración. Usos aprobados:
  * - marcar/desmarcar una tarea,
+ * - alternar la sección «Completadas» (colapsar/expandir),
  * - enviar desde la barra de creación rápida,
  * - guardar en el diálogo de edición,
  * - guardar un recordatorio.

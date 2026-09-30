@@ -35,6 +35,35 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 
 ## Changelog
 
+### 1.27.2 (2026-09-30) — correcciones post-auditoría de la ronda 2
+- Hallazgos bajos de `docs/auditoria-post-rediseno-1.27.0.md`:
+  - **B-1:** al vaciarse la sección «Completadas», el estado vuelve a colapsado (como manda el mockup); antes reaparecía expandida si se había dejado abierta.
+  - **B-2:** tick háptico sutil al alternar la sección «Completadas», como el checkbox de tarea.
+  - **B-3:** chevron de trazo (outlined) en la fila «Completadas», fiel al mockup aprobado.
+- **B-4** (discontinuidad del tamaño de la marca al cruzar el umbral de fuente 1.3) queda por diseño: solo visible al cambiar el ajuste de fuente del sistema; sin cambios.
+- 4 tests nuevos (`resetCompletedExpanded`); 260/260 JVM en verde; `assembleDebug` + `lintDebug` OK (0 errores).
+- Nota de infraestructura: el bundle CA del proxy de egreso rotó esta mañana y el truststore `cacerts-proxy` quedó obsoleto (lint fallaba al resolver dependencias por TLS); se regeneró con el bundle actual y se reinició el daemon de Gradle.
+
+### 1.27.1 (2026-09-29) — Hoy como el mockup aprobado (ronda 2)
+- Barra de creación blanca con micrófono azul (antes crema/micrófono gris).
+- Encabezado HOY + contador «hechas/total» a la derecha, a plena opacidad, como en el mockup.
+- La fila «Completadas» ya coincidía con el mockup; sin cambios.
+- Docs de distribución (IzzyOnDroid, Galaxy Store) actualizados a la 1.27.1.
+
+### 1.27.0 (2026-09-29) — evolución visual y UX, ronda 2 (parte 1)
+- **Sección «Completadas» colapsable en Hoy** (mockup aprobado por Daniel): fila táctil de ancho completo con chevron, «Completadas» en semibold gris y pill neutra con el contador; colapsada por defecto; las hechas se revelan/ocultan con fundido + despliegue de 150ms; TalkBack la anuncia como un botón (nombre + conteo + «Expandida»/«Contraída»). Lógica pura probada (`splitActiveCompleted`, textos del encabezado).
+- **La marca AHORA conserva su tamaño visual** con fuente del sistema muy grande (`brandTextStyle()` en `Type.kt`; encabezado compacto en landscape); el contenido sí escala.
+- **Jerarquía de diálogos:** nuevo `DialogTitle` (`titleLarge` + semántica de encabezado) en los 5 diálogos (opciones, editar, aviso de alarmas, acerca de, licencias); recordatorio del diálogo avanzado con estado vacío «Sin recordatorio».
+- En dos paneles (tablets), la fila seleccionada lleva banda `surfaceVariant` redondeada con fundido de 150ms y TalkBack anuncia «Seleccionada».
+- Contador HOY muestra hechas/total; `CollectUiEvents` elimina la recolección duplicada en HomeScreen.
+- Auditoría post-rediseño: `docs/auditoria-post-rediseno-1.27.0.md` (0 críticos, 0 altos; hallazgos bajos B-1–B-4).
+
+### 1.26.0 (2026-09-29) — migración a SDK 36
+- `compileSdk`/`targetSdk` 34 → 36 (Android 16); `minSdk` 26 se mantiene.
+- Toolchain: AGP 8.5.2 → 8.10.1, Gradle 8.7 → 8.11.1.
+- Único cambio de código funcional: `removeLast()` → `removeAt(lastIndex)` en `NaturalLanguageParser` (el toolchain nuevo lo resolvía a JDK 21: `NoSuchMethodError` en API < 36).
+- Fase controlada (decisión de Daniel): auditoría → plan → modificación → prueba → corrección → re-prueba → auditoría final. 244/244 tests, lint 0 errores, APK/AAB verificados con aapt. Informe: `docs/migracion-sdk-36.md`.
+
 ### 1.25.0 (2026-09-29) — correcciones post-auditoría del rediseño premium
 - **Auditoría post-rediseño (FASE 24) por inspección de código** sobre los bloques A–K: visual, UX, técnica, accesibilidad y adaptabilidad. Clasificación: 0 críticos, 2 importantes, 4 menores con impacto real, resto opcional (no tocado). Informe completo en `docs/informe-final-rediseno.md`.
 - **IMPORTANTE — chips seleccionados con el acento propio (`ui/components/AhoraChips.kt` nuevo + `ui/theme/Theme.kt`).** Los `FilterChip`/`InputChip` seleccionados usaban el `secondaryContainer` por defecto de M3 (lila ajeno a la paleta de un solo acento) porque `AhoraTheme` no lo define. Nuevo helper `ahoraSelectedChipColors()` (`primaryContainer` + `onPrimaryContainer` propios), aplicado en `TaskFormFields` (prioridad, fecha límite, recurrencia), `ReminderDialog` (atajos de día), `AdvancedCreationDialog` y `TaskDetailPanel` (chip de recordatorio); el selector de tema de Ajustes se unificó al mismo helper (antes definía los colores inline).
