@@ -7,8 +7,9 @@
 - **Algoritmo:** RSA de 3072 bits, firma SHA256withRSA
 - **Validez:** 30 años (2026-09-29 → 2056-09-21). Google exige que la clave
   siga válida más allá de 2033; con 30 años hay margen de sobra.
-- **Contraseñas actuales:** `REEMPLAZAR_CONTRASENA_PROPIA` (placeholder —
-  ver "Pon tu propia contraseña" abajo).
+- **Contraseñas actuales:** las de Daniel (cambiadas por él el 2026-09-29;
+  no están registradas en ningún archivo). El keystore es PKCS12: la
+  contraseña del keystore y la de la clave son la misma.
 
 Esta es la clave de distribución de Ahora. **La misma clave debe firmar
 todas las futuras versiones**: si se pierde o se genera otra, Google Play
@@ -30,24 +31,12 @@ export AHORA_KEY_PASSWORD="tu-contraseña-de-la-clave"
 
 Sin esas variables, la release se firma con la clave de debug (como antes).
 
-## Pon tu propia contraseña (hazlo una vez)
+## Contraseña (ya configurada por Daniel el 2026-09-29)
 
-La contraseña actual es un placeholder. Cámbiala con `keytool` — la clave
-NO cambia, así que las futuras actualizaciones siguen funcionando:
-
-```bash
-~/workspace/android-sdk/jdk17/bin/keytool -storepasswd \
-  -keystore ~/workspace/secure/ahora-release.keystore \
-  -storepass REEMPLAZAR_CONTRASENA_PROPIA
-
-~/workspace/android-sdk/jdk17/bin/keytool -keypasswd \
-  -keystore ~/workspace/secure/ahora-release.keystore \
-  -alias ahora-release \
-  -keypass REEMPLAZAR_CONTRASENA_PROPIA
-```
-
-Te pedirá la contraseña nueva dos veces (pueden ser distintas para el
-keystore y la clave; anota cuál es cuál).
+Daniel ya puso su propia contraseña. No está escrita en ningún archivo:
+guárdala tú en un lugar seguro junto con el respaldo del keystore.
+El keystore es PKCS12, así que la contraseña del keystore y la de la clave
+son la misma (no se pueden separar en este formato).
 
 ## Respaldo (obligatorio)
 
