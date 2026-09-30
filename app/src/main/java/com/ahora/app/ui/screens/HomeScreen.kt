@@ -550,7 +550,11 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     onEditRequest = onEditRequest,
                                     // La fila de la tarea en el detalle se
                                     // resalta (evolución visual 2026-09-30).
-                                    selectedTaskId = selectedTaskId
+                                    selectedTaskId = selectedTaskId,
+                                    // Ronda 2 (2026-09-30): las completadas
+                                    // se colapsan tras la fila táctil
+                                    // "Completadas" (mockup aprobado).
+                                    collapsibleCompleted = true
                                 )
                             }
                         }

@@ -157,6 +157,21 @@ object Motion {
     fun <T> selectionFade(): TweenSpec<T> =
         tween(durationMillis = SELECTION_FADE_MILLIS, easing = FastOutSlowInEasing)
 
+    /**
+     * Expansión de la sección "Completadas" (ronda 2, 2026-09-30): fundido
+     * + despliegue vertical con el fundido de 150ms ya usado en la app
+     * ([selectionFade]): abrir la sección se siente igual que seleccionar
+     * una fila, sin introducir una física nueva.
+     */
+    fun completedExpand(): EnterTransition =
+        fadeIn(animationSpec = selectionFade()) +
+            expandVertically(animationSpec = selectionFade())
+
+    /** Colapso de la sección "Completadas": lo inverso, en los mismos 150ms. */
+    fun completedCollapse(): ExitTransition =
+        fadeOut(animationSpec = selectionFade()) +
+            shrinkVertically(animationSpec = selectionFade())
+
     /** Duración de la entrada de pantalla (navegación entre Hoy/Todas/Ajustes). */
     const val SCREEN_ENTER_MILLIS = 280
 

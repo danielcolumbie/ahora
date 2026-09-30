@@ -129,8 +129,7 @@ los píxeles literales.
 
 ## 6. Pendiente / futuro (no entra en esta fase)
 
-- Colapsar "Completadas" en la lista de Hoy (cambio de comportamiento;
-  proponer a Daniel con mockup).
+- ~~Colapsar "Completadas" en la lista de Hoy~~ → implementado en §9.1.
 - Revisar el costo real de las animaciones escalonadas en un gama baja
   (medición en dispositivo físico, no teoría).
 - Revisar navegación inferior con escalas de fuente muy grandes en
@@ -150,24 +149,39 @@ los píxeles literales.
 
 ## 9. Ronda 2 (2026-09-30, orden "avanza" de Daniel)
 
-### 9.1. Mockup: colapsar "Completadas" en Hoy (PROPUESTA, no implementado)
+### 9.1. Mockup: colapsar "Completadas" en Hoy (IMPLEMENTADO 2026-09-30)
 
-Cambio de comportamiento → primero mockup para aprobación de Daniel.
+Daniel aprobó el mockup tal cual («Implémentalo así», 2026-09-29) y se
+implementó en código:
 
 - Diseño Canva: `04-completadas-colapsadas` (ID `DAHWoR2o5iE`), en la
   carpeta "Ahora — dirección visual" (`FAHWoPbYceQ`).
 - Enlace editable: https://canva.link/nuuebpalgg8seqg
 - Exportación: `docs/mockups/completadas-colapsadas.png`
-- Lo que propone: bajo las tareas activas, una fila táctil de ancho
-  completo con chevron hacia abajo (affordance clara de expandir),
-  texto "Completadas" en semibold gris oscuro y pill neutra con el
-  contador (3). Las completadas quedan ocultas tras el colapso.
-  Mantiene la identidad: fondo crema, sin tarjetas, sin sombras,
-  divisores finos, pills neutras.
-- Decisión explícita: NO implementado hasta que Daniel apruebe el
-  mockup. Al aprobar, la implementación sería una sección colapsable
-  en `TasksColumn` (o en `HomeScreen`), con el estado de
-  colapso/expandido recordado y TalkBack anunciando el estado.
+- Implementación: `TasksColumn` ganó la bandera `collapsibleCompleted`
+  (solo Hoy la activa; Todas conserva la lista plana). Las tareas se
+  parten en activas y completadas (`splitActiveCompleted`, pura y
+  probada); tras las activas va la fila táctil de ancho completo
+  (`CompletedSectionHeader`): chevron que gira, texto "Completadas" en
+  semibold gris oscuro y pill neutra con el contador. Colapsada por
+  defecto; el estado sobrevive a la rotación (`rememberSaveable`).
+- Animación: fundido + despliegue vertical en 150ms
+  (`Motion.completedExpand()`/`completedCollapse()`), la misma física
+  del fundido de selección ya usado en la app; chevron con
+  `animateFloatAsState` en 150ms.
+- TalkBack: el encabezado es un solo botón que anuncia nombre + conteo
+  ("Completadas, 3 tareas") y estado ("Expandida"/"Contraída"); el
+  chevron es decorativo.
+- Tokens: sin `dp`/`sp` sueltos (nuevo `Sizes.sectionChevron` 24dp);
+  edita/reordena con los diálogos integrados de `TasksColumn` intactos
+  (la sección vive dentro del mismo `LazyColumn`).
+- Tests nuevos: `CompletedSectionTest` (6 tests: partición en orden,
+  singular/plural del anuncio, estados de TalkBack).
+- Verificación: 251 tests JVM, todos OK (incluido el que fallaba de
+  forma intermitente en la base); `lintRelease` 0 errores, 20 warnings
+  (igual que la base, ninguno en archivos tocados); `assembleDebug` y
+  `assembleRelease` correctos. Sin cambio de versión (sigue 1.26.0/28),
+  sin tags ni releases.
 
 ### 9.2. Auditoría: navegación y layouts con fuentes muy grandes en landscape
 

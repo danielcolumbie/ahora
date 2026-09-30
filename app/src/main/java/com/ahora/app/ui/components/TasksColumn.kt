@@ -2,29 +2,54 @@ package com.ahora.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.notifications.AlarmScheduler
 import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
+import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -72,7 +97,15 @@ fun TasksColumn(
      * En dos paneles: id de la tarea que muestra el panel de detalle, para
      * resaltar su fila ([TaskRow.selected]). En `null` no se resalta nada.
      */
-    selectedTaskId: Long? = null
+    selectedTaskId: Long? = null,
+    /**
+     * Ronda 2 (2026-09-30, mockup aprobado por Daniel): las tareas
+     * completadas se agrupan tras una fila táctil de ancho completo
+     * ("Completadas" + pill con el contador), colapsada por defecto.
+     * Las activas siempre visibles; las hechas, ocultas hasta expandir.
+     * Solo Hoy lo activa; Todas conserva la lista plana.
+     */
+    collapsibleCompleted: Boolean = false
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
     var reminderTask by remember { mutableStateOf<Task?>(null) }
@@ -114,6 +147,19 @@ fun TasksColumn(
         }
     }
 
+    // Ronda 2 (2026-09-30): en Hoy las completadas se agrupan tras una
+    // fila táctil ("Completadas" + pill con el contador), colapsada por
+    // defecto. Las activas siempre visibles; las hechas, ocultas hasta
+    // expandir. Sin la bandera, la lista queda plana como antes (Todas).
+    val (activeTasks, completedTasks) = remember(tasks, collapsibleCompleted) {
+        if (collapsibleCompleted) splitActiveCompleted(tasks)
+        else tasks to emptyList()
+    }
+    // Colapsada por defecto, como en el mockup aprobado; el estado
+    // sobrevive a la rotación.
+    var completedExpanded by rememberSaveable { mutableStateOf(false) }
+    val hasCompletedSection = collapsibleCompleted && completedTasks.isNotEmpty()
+
     LazyColumn(
         state = listState,
         // Sin tarjetas: las filas se separan con un divisor sutil.
@@ -121,38 +167,60 @@ fun TasksColumn(
         contentPadding = PaddingValues(vertical = Spacing.xs),
         modifier = modifier
     ) {
-        itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
-            val isNew = task.id !in shownIds
-            LaunchedEffect(task.id) { shownIds += task.id }
-            val staggerDelay =
-                Motion.staggerDelayMillis(index, isFirstShow = isNew && shownIds.isEmpty())
-            AnimatedVisibility(
-                visible = true,
-                enter = if (isNew) Motion.taskEnter(staggerDelay) else EnterTransition.None,
-                // Salida corta y discreta (bloque H): al eliminar o al
-                // completar en «Hoy», la fila se desvanece y se colapsa en
-                // 200ms en vez de desaparecer de golpe.
-                exit = Motion.softExit(),
-                // animateItemPlacement(): en foundation 1.6.8 aún no existe
-                // animateItem() (llegó en 1.7); esta es la API vigente aquí.
+        itemsIndexed(
+            activeTasks,
+            key = { _, task -> task.id }
+        ) { index, task ->
+            TaskListItem(
+                task = task,
+                index = index,
+                shownIds = shownIds,
+                onToggleDone = onToggleDone,
+                onDelete = onDelete,
+                onEdit = onEdit,
+                onToggleReminder = onToggleReminder,
+                selected = selectedTaskId != null && task.id == selectedTaskId,
+                // El divisor también separa la última activa del
+                // encabezado de completadas.
+                showDivider = index < activeTasks.lastIndex || hasCompletedSection,
+                // animateItemPlacement vive en el scope del LazyColumn:
+                // se crea aquí y se pasa al ítem.
                 modifier = Modifier.animateItemPlacement()
-            ) {
-                TaskRow(
-                    task = task,
-                    // Se pasan las referencias estables: una sola instancia
-                    // para todas las filas, no una lambda nueva por fila.
-                    onToggleDone = onToggleDone,
-                    onDelete = onDelete,
-                    // Dos paneles (bloque J): editar selecciona la tarea
-                    // para el panel de detalle en vez de abrir el diálogo.
-                    onEdit = onEdit,
-                    onToggleReminder = onToggleReminder,
-                    // La fila de la tarea en el detalle se resalta.
-                    selected = selectedTaskId != null && task.id == selectedTaskId
+            )
+        }
+        if (hasCompletedSection) {
+            item(key = "completed-header") {
+                CompletedSectionHeader(
+                    count = completedTasks.size,
+                    expanded = completedExpanded,
+                    onToggle = { completedExpanded = !completedExpanded }
                 )
             }
-            if (index < tasks.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            itemsIndexed(
+                completedTasks,
+                key = { _, task -> task.id }
+            ) { index, task ->
+                // Las hechas se revelan/ocultan con fundido + despliegue
+                // en 150ms (Motion.completedExpand/Collapse): la misma
+                // física que la selección de fila, sin física nueva.
+                AnimatedVisibility(
+                    visible = completedExpanded,
+                    enter = Motion.completedExpand(),
+                    exit = Motion.completedCollapse()
+                ) {
+                    TaskListItem(
+                        task = task,
+                        index = activeTasks.size + index,
+                        shownIds = shownIds,
+                        onToggleDone = onToggleDone,
+                        onDelete = onDelete,
+                        onEdit = onEdit,
+                        onToggleReminder = onToggleReminder,
+                        selected = selectedTaskId != null && task.id == selectedTaskId,
+                        showDivider = index < completedTasks.lastIndex,
+                        modifier = Modifier.animateItemPlacement()
+                    )
+                }
             }
         }
     }
@@ -191,3 +259,169 @@ fun TasksColumn(
         alarmScheduler = alarmScheduler
     )
 }
+
+/**
+ * Una fila de tarea dentro del LazyColumn, con su animación de entrada y
+ * su divisor opcional. Extraída para reutilizarla en los dos grupos
+ * (activas y completadas) sin duplicar el cuerpo.
+ *
+ * [modifier] se crea en el scope del LazyColumn (`animateItemPlacement`
+ * solo existe ahí: en foundation 1.6.8 aún no existe `animateItem()`).
+ */
+@Composable
+private fun TaskListItem(
+    task: Task,
+    index: Int,
+    shownIds: MutableSet<Long>,
+    onToggleDone: (Task) -> Unit,
+    onDelete: (Task) -> Unit,
+    onEdit: (Task) -> Unit,
+    onToggleReminder: (Task) -> Unit,
+    selected: Boolean,
+    showDivider: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // Cada tarea anima su entrada una sola vez: las iniciales de forma
+    // escalonada y las que se añadan después, al aparecer. El retardo
+    // escalonado tiene tope (Motion.STAGGER_MAX_MILLIS = 360ms).
+    val isNew = task.id !in shownIds
+    LaunchedEffect(task.id) { shownIds += task.id }
+    val staggerDelay =
+        Motion.staggerDelayMillis(index, isFirstShow = isNew && shownIds.isEmpty())
+    AnimatedVisibility(
+        visible = true,
+        enter = if (isNew) Motion.taskEnter(staggerDelay) else EnterTransition.None,
+        // Salida corta y discreta (bloque H): al eliminar o al completar
+        // en «Hoy», la fila se desvanece y se colapsa en 200ms en vez de
+        // desaparecer de golpe.
+        exit = Motion.softExit(),
+        modifier = modifier
+    ) {
+        TaskRow(
+            task = task,
+            // Se pasan las referencias estables: una sola instancia para
+            // todas las filas, no una lambda nueva por fila (bloque K).
+            onToggleDone = onToggleDone,
+            onDelete = onDelete,
+            // Dos paneles (bloque J): editar selecciona la tarea para el
+            // panel de detalle en vez de abrir el diálogo.
+            onEdit = onEdit,
+            onToggleReminder = onToggleReminder,
+            // La fila de la tarea en el detalle se resalta.
+            selected = selected
+        )
+    }
+    if (showDivider) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/**
+ * Fila táctil de ancho completo que abre/cierra las tareas completadas
+ * (ronda 2, 2026-09-30; mockup aprobado por Daniel tal cual): chevron,
+ * texto "Completadas" en semibold gris oscuro y pill neutra con el
+ * contador. Sin tarjetas ni sombras: la misma calma del resto de la
+ * lista. El área táctil mide como mínimo [Sizes.minTouchRow] (48dp).
+ *
+ * TalkBack la anuncia como un solo botón: nombre + conteo + estado
+ * ("Expandida"/"Contraída"); el chevron es decorativo.
+ */
+@Composable
+private fun CompletedSectionHeader(
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    // El chevron gira al expandir/contraer con el fundido de 150ms de la
+    // app: el mismo gesto visual que la selección de fila.
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = Motion.selectionFade(),
+        label = "completedChevron"
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Sizes.minTouchRow)
+            // El clip acota el ripple al tocar: la fila no tiene fondo
+            // propio (como el resto de la lista), pero el toque sí se ve.
+            .clip(RoundedCornerShape(Spacing.s))
+            .clickable(
+                onClick = onToggle,
+                role = Role.Button,
+                onClickLabel = if (expanded) "Contraer" else "Expandir"
+            )
+            // Un solo anuncio: nombre + conteo + estado, como un botón.
+            .semantics(mergeDescendants = true) {
+                contentDescription = completedHeaderContentDescription(count)
+                stateDescription = completedHeaderStateDescription(expanded)
+            }
+            .padding(horizontal = Spacing.s, vertical = Spacing.xs)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowDown,
+            // Decorativo: el estado lo anuncia el `stateDescription`
+            // del encabezado, no el icono.
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .size(Sizes.sectionChevron)
+                .graphicsLayer { rotationZ = chevronRotation }
+        )
+        Spacer(modifier = Modifier.width(Spacing.s))
+        Text(
+            text = "Completadas",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        CountPill(count = count)
+    }
+}
+
+/**
+ * Pill neutra con el contador (igual que las pills de metadatos de la
+ * fila: `surfaceVariant`, sin icono). El acento se reserva para acciones
+ * y estados, no para un conteo.
+ */
+@Composable
+private fun CountPill(count: Int) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(
+                horizontal = Spacing.m,
+                vertical = Spacing.xs
+            )
+        )
+    }
+}
+
+/**
+ * Parte la lista en activas y completadas, conservando el orden de cada
+ * grupo. Función pura para poder probarla.
+ */
+internal fun splitActiveCompleted(tasks: List<Task>): Pair<List<Task>, List<Task>> =
+    tasks.partition { !it.isDone }
+
+/**
+ * Anuncio de TalkBack del encabezado de completadas (nombre + conteo).
+ * Función pura para poder probarla (igual que `micButtonDescription`).
+ */
+internal fun completedHeaderContentDescription(count: Int): String =
+    if (count == 1) "Completadas, 1 tarea" else "Completadas, $count tareas"
+
+/**
+ * Estado que TalkBack anuncia del encabezado de completadas.
+ * Función pura para poder probarla.
+ */
+internal fun completedHeaderStateDescription(expanded: Boolean): String =
+    if (expanded) "Expandida" else "Contraída"

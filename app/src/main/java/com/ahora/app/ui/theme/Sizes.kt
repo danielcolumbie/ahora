@@ -29,6 +29,12 @@ object Sizes {
     /** Icono dentro de las pills de metadatos. */
     val pillIcon = 12.dp
 
+    /**
+     * Chevron del encabezado de la sección "Completadas" colapsable
+     * (ronda 2, 2026-09-30).
+     */
+    val sectionChevron = 24.dp
+
     /** Caja del icono en las filas de ajustes (BLOQUE F del rediseño premium). */
     val settingIconBox = 36.dp
 
