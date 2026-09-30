@@ -7,6 +7,7 @@ import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.data.buildSearchPattern
 import com.ahora.app.data.nextAfter
+import com.ahora.app.data.startOfTomorrowMillis
 import com.ahora.app.data.toCode
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,14 @@ class TaskRepository(
     fun observeAll(): Flow<List<Task>> = dao.observeAll()
 
     fun observePending(): Flow<List<Task>> = dao.observePending()
+
+    /**
+     * Pantalla «Hoy» (auditoría 1.26.0): pendientes con fecha límite hoy o
+     * vencida. [endOfToday] se calcula con el reloj inyectable para poder
+     * probarlo de forma determinista.
+     */
+    fun observeToday(endOfToday: Long = startOfTomorrowMillis(clock())): Flow<List<Task>> =
+        dao.observeToday(endOfToday)
 
     /**
      * Busca tareas por título. Con la consulta vacía devuelve todas (así la

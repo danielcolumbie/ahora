@@ -7,6 +7,7 @@ import com.ahora.app.data.TaskListComparator
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.data.nextAfter
+import com.ahora.app.data.startOfTomorrowMillis
 import com.ahora.app.data.toCode
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * Pruebas de la lógica de negocio del repositorio.
@@ -44,6 +48,12 @@ class TaskRepositoryTest {
 
         override fun observePending(): Flow<List<Task>> =
             tasks.map { list -> list.filter { !it.isDone } }
+
+        /** Emula el filtro de «Hoy»: pendientes con fecha límite hoy o vencida. */
+        override fun observeToday(endOfToday: Long): Flow<List<Task>> =
+            tasks.map { list ->
+                list.filter { !it.isDone && it.dueAt != null && it.dueAt < endOfToday }
+            }
 
         override suspend fun getPendingForWidget(limit: Int): List<Task> =
             tasks.value.filter { !it.isDone }.take(limit)
@@ -649,5 +659,27 @@ class TaskRepositoryTest {
                 dao.getById(id)!!.recurrence
             )
         }
+    }
+
+    @Test
+    fun `observeToday solo trae pendientes con fecha de hoy o vencida`() = runTest {
+        // Reloj del test fijo (NOW) en zona fija: el "hoy" es determinista.
+        val havana = ZoneId.of("America/Havana")
+        val endOfToday = startOfTomorrowMillis(NOW, havana)
+        val todayStart = ZonedDateTime.ofInstant(Instant.ofEpochMilli(NOW), havana)
+            .toLocalDate().atStartOfDay(havana).toInstant().toEpochMilli()
+        val overdue = todayStart - 5 * 86_400_000L
+        val future = endOfToday + 86_400_000L
+
+        val idToday = dao.upsert(Task(title = "Hoy", dueAt = todayStart))
+        val idOverdue = dao.upsert(Task(title = "Vencida", dueAt = overdue))
+        // Fuera: mañana, futuro, sin fecha y ya completada.
+        dao.upsert(Task(title = "Manana", dueAt = endOfToday))
+        dao.upsert(Task(title = "Futura", dueAt = future))
+        dao.upsert(Task(title = "Sin fecha", dueAt = null))
+        dao.upsert(Task(title = "Hecha", dueAt = todayStart, isDone = true, doneAt = NOW))
+
+        val shown = repo.observeToday(endOfToday).first().map { it.id }.toSet()
+        assertEquals(setOf(idToday, idOverdue), shown)
     }
 }

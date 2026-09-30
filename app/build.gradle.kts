@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "com.ahora.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.ahora.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 27
-        versionName = "1.25.0"
+        targetSdk = 36
+        versionCode = 28
+        versionName = "1.26.0"
 
         vectorDrawables {
             useSupportLibrary = true

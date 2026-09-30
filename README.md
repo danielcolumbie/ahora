@@ -1,21 +1,25 @@
 # Ahora — «Sácalo de tu cabeza.»
 
+**Versión actual: 1.26.0** (Release Candidate).
+
 **Ahora** es una aplicación Android nativa y minimalista para recordar las pequeñas
 cosas de la vida cotidiana: piensas algo → lo capturas en segundos → Ahora se
 encarga de recordártelo.
 
 Es una memoria externa para las pequeñas cosas. Sin cuentas, sin publicidad,
-sin analítica, sin servidores: tus tareas viven solo en tu teléfono y la app
-funciona completamente offline.
+sin analítica: tus tareas viven solo en tu teléfono.
 
-## Características (V1)
+## Características (1.26.0)
 
-- Crear, editar, completar y eliminar tareas
+- Crear, editar, completar y eliminar tareas (con deshacer)
 - Captura rápida con campo grande + botón de micrófono (voz a texto)
+- Interpretación de lenguaje natural («llamar a mamá mañana a las 3pm»)
+- Prioridades, fechas límite y tareas recurrentes
 - Recordatorios locales con notificaciones (sin Firebase)
+- Widget de lista con completar desde el propio widget
+- Búsqueda de tareas y respaldo local (exportar/importar)
 - Modo oscuro (principal) y modo claro
-- Animaciones suaves (completar, añadir, eliminar con deshacer)
-- Pantalla vacía elegante, accesibilidad básica
+- Animaciones suaves, pantalla vacía elegante, accesibilidad básica
 - Navegación mínima: Hoy · Todas · Ajustes
 - Rendimiento pensado para gama baja/media
 
@@ -46,14 +50,19 @@ Desde terminal (con el wrapper incluido en el proyecto):
 ./gradlew lintDebug          # análisis estático (0 errores)
 ```
 
-> Nota: el APK release se firma con la clave de debug por defecto. Para publicar
-> en Google Play, configura tu propia clave de firma en `app/build.gradle.kts`.
+> Nota: el APK release se firma con la clave de distribución configurada por
+> variables de entorno (`AHORA_KEYSTORE_PATH`, `AHORA_KEYSTORE_PASSWORD`,
+> `AHORA_KEY_ALIAS`, `AHORA_KEY_PASSWORD`); sin ellas usa la clave de debug.
+> Ver [docs/firma-distribucion.md](docs/firma-distribucion.md). La clave nunca
+> se sube al repositorio.
 
 ## Cómo instalarla
 
 - **Pruebas:** instala el APK debug en tu teléfono (permite "instalar apps
   desconocidas" para el instalador que uses) o pulsa Run desde Android Studio.
-- **Distribución:** sube el AAB release firmado a Google Play Console.
+- **Distribución:** el APK release firmado se publica en
+  [GitHub Releases](https://github.com/danielcolumbie/ahora/releases);
+  el AAB release firmado queda listo para Google Play Console.
 
 ## Estructura del proyecto
 
@@ -65,19 +74,26 @@ ahora/
 │   │   ├── MainActivity.kt            # Única activity (Compose)
 │   │   ├── AhoraApplication.kt        # Crea el contenedor DI + canal de notificaciones
 │   │   ├── data/                      # Room + DataStore
-│   │   │   ├── Task.kt                # Entidad (id, título, fechas, recordatorio, estado, recurrencia*)
+│   │   │   ├── Task.kt                # Entidad (id, título, fechas, recordatorio, estado, recurrencia)
 │   │   │   ├── TaskDao.kt
-│   │   │   ├── AhoraDatabase.kt
+│   │   │   ├── AhoraDatabase.kt       # v2 + MIGRATION_1_2
+│   │   │   ├── Migrations.kt
 │   │   │   └── SettingsRepository.kt  # Apariencia, notificaciones, sonido, vibración
 │   │   ├── domain/
-│   │   │   └── TaskRepository.kt      # Lógica de negocio (sincroniza DB + alarmas)
+│   │   │   ├── TaskRepository.kt      # Lógica de negocio (sincroniza DB + alarmas)
+│   │   │   └── NaturalLanguageParser.kt  # Interpretación de lenguaje natural
 │   │   ├── notifications/             # Infraestructura de recordatorios locales
 │   │   │   ├── NotificationHelper.kt
 │   │   │   ├── ReminderScheduler.kt   # AlarmManager
 │   │   │   ├── ReminderReceiver.kt    # Muestra la notificación
 │   │   │   └── BootReceiver.kt        # Reprograma tras reiniciar
+│   │   ├── widget/                    # Widget de lista (RemoteViews)
+│   │   │   ├── AhoraWidgetProvider.kt
+│   │   │   ├── WidgetTaskService.kt
+│   │   │   ├── WidgetContent.kt
+│   │   │   └── WidgetRefresher.kt
 │   │   ├── speech/
-│   │   │   └── SpeechInputManager.kt  # Voz a texto (SpeechRecognizer)
+│   │   │   └── SpeechInputManager.kt  # Voz a texto (SpeechRecognizer, preferencia offline)
 │   │   ├── di/
 │   │   │   └── AppContainer.kt        # Dependencias manuales
 │   │   └── ui/
@@ -88,12 +104,10 @@ ahora/
 │   │       ├── settings/              # SettingsScreen + ViewModel
 │   │       └── MainViewModel.kt
 │   └── res/                           # Icono adaptativo, tema de ventana, backup rules
+├── app/schemas/                       # Schemas Room exportados (validar migraciones)
 ├── gradle/libs.versions.toml          # Catálogo de versiones
 └── README.md
 ```
-
-\* `recurrence` está reservado en el modelo para la futura función de tareas
-recurrentes; la V1 no lo utiliza.
 
 ## Permisos
 
@@ -102,14 +116,19 @@ Solo los estrictamente necesarios, y se piden en el momento de uso:
 | Permiso | Cuándo se pide |
 |---|---|
 | Micrófono | Al pulsar el botón de dictado |
-| Notificaciones | Al activar notificaciones en Ajustes (Android 13+) |
+| Notificaciones | Al crear un recordatorio (Android 13+) o en Ajustes |
 | Alarmas exactas | Lo gestiona el sistema para los recordatorios |
 | Recibir arranque completado | Automático, para reprogramar recordatorios |
 
 ## Privacidad
 
 Privacy-first: no hay registro, no se pide correo, no hay publicidad ni
-analítica, no se envía nada a ningún servidor. Todo permanece en el dispositivo.
+analítica. Tus tareas y ajustes permanecen en el dispositivo.
+
+Excepción honesta: el dictado por voz usa el `SpeechRecognizer` de Android.
+La app pide preferencia por el reconocimiento offline, pero si tu teléfono
+no tiene el paquete de voz sin conexión, ese audio puede procesarse en los
+servidores de Google. Todo lo demás es 100% local.
 
 ## Licencia
 
@@ -118,6 +137,5 @@ Compose, AndroidX) están bajo Apache License 2.0.
 
 ## Hoja de ruta (futuro, no implementado)
 
-Interpretación de lenguaje natural, tareas recurrentes, widgets, sincronización
-entre dispositivos, copia de seguridad, estadísticas, traducción al inglés y
+Sincronización entre dispositivos, estadísticas, traducción al inglés y
 versión para iOS. La arquitectura ya deja el espacio para todo eso.

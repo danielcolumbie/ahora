@@ -87,7 +87,9 @@ private class WidgetTaskFactory(
             }
         )
         // ImageView.setColorFilter(int) por reflexión (API de RemoteViews).
-        setInt(R.id.widget_row_dot, "setColorFilter", color)
+        // Protegido: si un OEM no resuelve el método, el widget sigue
+        // funcionando sin el tinte en vez de crashear (auditoría 1.26.0).
+        runCatching { setInt(R.id.widget_row_dot, "setColorFilter", color) }
     }
 
     override fun getLoadingView(): RemoteViews? = null

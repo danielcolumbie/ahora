@@ -58,7 +58,12 @@ class MainViewModel(
     private val settings: SettingsRepository
 ) : ViewModel() {
 
-    val pendingTasks: StateFlow<List<Task>> = repository.observePending()
+    /**
+     * Pantalla «Hoy» (auditoría 1.26.0): solo tareas con fecha límite hoy
+     * o ya vencida. El límite (inicio de mañana) se calcula una vez al
+     * crear el ViewModel.
+     */
+    val todayTasks: StateFlow<List<Task>> = repository.observeToday()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val allTasks: StateFlow<List<Task>> = repository.observeAll()

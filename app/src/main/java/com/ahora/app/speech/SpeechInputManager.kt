@@ -15,6 +15,13 @@ import java.util.Locale
  * Voz a texto con la API gratuita de Android (sin servicios externos de pago).
  * El texto reconocido se devuelve para que el usuario lo confirme antes de guardar:
  * nunca se inventa texto si el reconocimiento falla.
+ *
+ * Privacidad (auditoría 1.26.0): se pide preferencia por el reconocimiento
+ * offline ([RecognizerIntent.EXTRA_PREFER_OFFLINE]) para que el audio no
+ * salga del teléfono cuando el dispositivo lo soporta. Si el dispositivo no
+ * tiene el paquete de voz offline, se reintenta una vez en modo normal: la
+ * funcionalidad no se rompe, solo que ese audio puede procesarse en los
+ * servidores de Google (ver README → Privacidad).
  */
 class SpeechInputManager(private val context: Context) {
 
@@ -32,7 +39,24 @@ class SpeechInputManager(private val context: Context) {
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
+    /**
+     * Errores en los que reintentar sin preferencia offline no tiene
+     * sentido: el usuario no habló, falta el permiso o el reconocedor
+     * está ocupado. Cualquier otro error tras pedir offline se interpreta
+     * como "este dispositivo no lo soporta" y se prueba en modo normal.
+     */
+    private val noOfflineRetryErrors = setOf(
+        SpeechRecognizer.ERROR_NO_MATCH,
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS,
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY
+    )
+
     fun startListening() {
+        startListening(preferOffline = true, retried = false)
+    }
+
+    private fun startListening(preferOffline: Boolean, retried: Boolean) {
         if (!isAvailable()) {
             _state.value = State.Error("El reconocimiento de voz no está disponible en este dispositivo. Puedes escribir la tarea.")
             return
@@ -47,6 +71,12 @@ class SpeechInputManager(private val context: Context) {
             override fun onBufferReceived(buffer: ByteArray?) = Unit
             override fun onEndOfSpeech() = Unit
             override fun onError(error: Int) {
+                // Un solo reintento en modo normal si el offline no está
+                // disponible en este dispositivo.
+                if (preferOffline && !retried && error !in noOfflineRetryErrors) {
+                    startListening(preferOffline = false, retried = true)
+                    return
+                }
                 _state.value = State.Error(
                     when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH,
@@ -83,6 +113,9 @@ class SpeechInputManager(private val context: Context) {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                if (preferOffline) {
+                    putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                }
             }
             startListening(intent)
         }

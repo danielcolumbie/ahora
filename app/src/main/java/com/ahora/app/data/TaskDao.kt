@@ -23,6 +23,15 @@ interface TaskDao {
     fun observePending(): Flow<List<Task>>
 
     /**
+     * Tareas de la pantalla «Hoy» (auditoría 1.26.0): solo pendientes con
+     * fecha límite hoy o ya vencida. [endOfToday] es el inicio de mañana
+     * en milisegundos (límite exclusivo, ver [startOfTomorrowMillis]);
+     * las tareas sin fecha viven en «Todas», no en «Hoy».
+     */
+    @Query("SELECT * FROM tasks WHERE isDone = 0 AND dueAt IS NOT NULL AND dueAt < :endOfToday ORDER BY priority DESC, dueAt ASC, createdAt DESC")
+    fun observeToday(endOfToday: Long): Flow<List<Task>>
+
+    /**
      * Pendientes para el widget (ETAPA 12): el mismo orden que
      * [observePending] pero con límite, en una sola consulta suspendida.
      * El widget solo necesita las primeras filas, no toda la tabla en

@@ -243,7 +243,10 @@ private class NaturalLanguageParser(
             }
             // Día imposible ("45 de octubre"): no se reclama como fecha;
             // queda en el título tal cual. Hay que liberar el span.
-            claimed.removeLast()
+            // NOTA (migración SDK 36): no usar removeLast(); el toolchain
+            // nuevo lo resuelve a List.removeLast() de JDK 21, que no existe
+            // en el runtime de tests (JDK 17) ni en Android API < 36.
+            claimed.removeAt(claimed.lastIndex)
         }
 
         // "15/10" o "15/10/2026".
@@ -272,7 +275,9 @@ private class NaturalLanguageParser(
                     return
                 }
             }
-            claimed.removeLast()
+            // Igual que arriba: removeAt(lastIndex) en vez de removeLast()
+            // (ver nota de la migración a SDK 36).
+            claimed.removeAt(claimed.lastIndex)
         }
 
         // "en 3 días", "en una semana", "en 2 meses".
@@ -304,7 +309,9 @@ private class NaturalLanguageParser(
         val hour = hourText.toIntOrNull() ?: WORD_NUMBERS[hourText] ?: return
         val minute = match.groupValues.getOrNull(2)?.toIntOrNull() ?: 0
         if (hour !in 0..23 || minute !in 0..59) {
-            claimed.removeLast()
+            // Igual que arriba: removeAt(lastIndex) en vez de removeLast()
+            // (ver nota de la migración a SDK 36).
+            claimed.removeAt(claimed.lastIndex)
             return
         }
         val marker = match.groupValues.getOrNull(3).orEmpty().replace(".", "")

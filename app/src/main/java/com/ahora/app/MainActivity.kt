@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ahora.app.data.ThemeMode
+import com.ahora.app.ui.screens.DatabaseErrorScreen
 import com.ahora.app.ui.MainViewModel
 import com.ahora.app.ui.MainViewModelFactory
 import com.ahora.app.ui.navigation.NavGraph
@@ -24,7 +25,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val container = (application as AhoraApplication).container
+        val app = application as AhoraApplication
+        if (app.databaseUnavailable) {
+            // La BD no abrió (migración fallida o downgrade): error claro
+            // en vez de crash; no se borró nada (auditoría 1.26.0).
+            setContent {
+                AhoraTheme(themeMode = ThemeMode.SYSTEM) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        DatabaseErrorScreen()
+                    }
+                }
+            }
+            return
+        }
+        val container = app.container
 
         setContent {
             val themeMode by container.settingsRepository.themeMode

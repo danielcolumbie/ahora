@@ -13,7 +13,7 @@ export ANDROID_HOME="$HOME/workspace/android-sdk"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export GRADLE_USER_HOME="$HOME/workspace/gradle-home"
 export GRADLE_OPTS="-Djava.net.preferIPv4Stack=true -Djavax.net.ssl.trustStore=$HOME/workspace/android-sdk/cacerts-proxy -Djavax.net.ssl.trustStorePassword=changeit"
-export PATH="$JAVA_HOME/bin:$HOME/workspace/android-sdk/gradle-8.7/bin:$PATH"
+export PATH="$JAVA_HOME/bin:$HOME/workspace/android-sdk/gradle-8.11.1/bin:$PATH"
 cd "$HOME/workspace/apps/ahora"
 
 echo "== Compilando clases main + test =="

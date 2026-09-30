@@ -2,6 +2,7 @@ package com.ahora.app.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -87,6 +88,7 @@ import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.AdaptiveListDetail
 import com.ahora.app.ui.components.AdvancedCreationDialog
+import com.ahora.app.ui.components.CreationValues
 import com.ahora.app.ui.components.EmptyState
 import com.ahora.app.ui.components.TaskDetailPanel
 import com.ahora.app.ui.components.TasksColumn
@@ -101,7 +103,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(viewModel: MainViewModel) {
-    val tasks by viewModel.pendingTasks.collectAsStateWithLifecycle()
+    val tasks by viewModel.todayTasks.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -137,11 +139,14 @@ fun HomeScreen(viewModel: MainViewModel) {
         }
     }
 
-    fun submit() {
-        // El borrador devuelve el título limpio (sin lo detectado) y los
-        // valores, y se vacía: la lógica de guardado no cambió.
-        val values = draft.consumeForSave()
-        if (values.title.isBlank()) return
+    /**
+     * Creación pendiente del permiso de notificaciones: el launcher vive
+     * aquí (siempre compuesto) porque el resultado llega después de que
+     * el borrador ya se consumió (auditoría 1.26.0).
+     */
+    var pendingCreation by remember { mutableStateOf<CreationValues?>(null) }
+
+    fun saveTask(values: CreationValues) {
         // Tick de confirmación: la tarea quedó guardada (bloque H).
         Haptics.tick(haptics)
         viewModel.addTask(
@@ -151,6 +156,45 @@ fun HomeScreen(viewModel: MainViewModel) {
             values.recurrence,
             values.reminderAt
         )
+    }
+
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val values = pendingCreation
+        pendingCreation = null
+        if (values == null) return@rememberLauncherForActivityResult
+        if (granted) {
+            saveTask(values)
+        } else {
+            // Denegado: sin el permiso el recordatorio nunca avisaría, así
+            // que la tarea se guarda sin él y se avisa (misma regla que en
+            // ReminderFlowHost: no se descarta la elección en silencio).
+            saveTask(values.copy(reminderAt = null))
+            showMessage("Sin permiso de notificaciones, el recordatorio no te avisará")
+        }
+    }
+
+    fun submit() {
+        // El borrador devuelve el título limpio (sin lo detectado) y los
+        // valores, y se vacía: la lógica de guardado no cambió.
+        val values = draft.consumeForSave()
+        if (values.title.isBlank()) return
+        // El recordatorio puede venir del lenguaje natural o del diálogo
+        // de opciones: en Android 13+ se pide el permiso justo al guardar,
+        // igual que en el flujo normal (auditoría 1.26.0).
+        val needsPermission =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                values.reminderAt != null &&
+                ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            pendingCreation = values
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            saveTask(values)
+        }
     }
 
     fun onMicClick() {

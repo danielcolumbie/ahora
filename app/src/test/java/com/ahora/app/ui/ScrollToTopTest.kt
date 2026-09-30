@@ -60,6 +60,8 @@ class ScrollToTopTest {
         override fun observeAll(): Flow<List<Task>> = tasks
         override fun observePending(): Flow<List<Task>> =
             tasks.map { list -> list.filter { !it.isDone } }
+        override fun observeToday(endOfToday: Long): Flow<List<Task>> =
+            tasks.map { list -> list.filter { !it.isDone && it.dueAt != null && it.dueAt < endOfToday } }
         override suspend fun getPendingForWidget(limit: Int): List<Task> = emptyList()
         override fun search(pattern: String): Flow<List<Task>> = tasks
         override suspend fun upsert(task: Task): Long = 0L

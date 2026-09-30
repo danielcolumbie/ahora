@@ -16,6 +16,15 @@ class AhoraApplication : Application() {
         private set
 
     /**
+     * true si la base de datos no pudo abrirse al arrancar (migración
+     * fallida o downgrade: Room lanza IllegalStateException). No se borra
+     * nada; MainActivity muestra un error claro en vez de crashear
+     * (auditoría 1.26.0).
+     */
+    var databaseUnavailable: Boolean = false
+        private set
+
+    /**
      * Alcance para el trabajo de arranque en segundo plano. La app vive
      * mientras el proceso viva, así que no hay fuga que cancelar.
      */
@@ -25,6 +34,11 @@ class AhoraApplication : Application() {
         super.onCreate()
         container = AppContainer(this)
         NotificationHelper.createChannel(this)
+        // Apertura ansiosa: Room valida las migraciones al abrir la BD, no
+        // al construirla. Si falla (downgrade o migración rota), se marca
+        // para mostrar el error en MainActivity; nunca se borran datos.
+        runCatching { container.database.openHelper.writableDatabase }
+            .onFailure { databaseUnavailable = true }
         // Reconciliación en frío: AlarmManager no permite enumerar las
         // alarmas programadas, así que se reprograman todas las futuras
         // (idempotente: el PendingIntent es el mismo y se sobrescribe) y se
