@@ -1,0 +1,1 @@
+SDK 36 migration: same app, ready for the newest Android.
