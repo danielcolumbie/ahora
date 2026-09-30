@@ -72,6 +72,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -95,6 +96,7 @@ import com.ahora.app.ui.theme.Haptics
 import com.ahora.app.ui.theme.Motion
 import com.ahora.app.ui.theme.Sizes
 import com.ahora.app.ui.theme.Spacing
+import com.ahora.app.ui.theme.brandTextStyle
 import kotlinx.coroutines.launch
 
 /** Pantalla principal: capturar en segundos y ver lo de hoy. */
@@ -284,7 +286,14 @@ fun HomeScreen(viewModel: MainViewModel) {
                     .padding(horizontal = Spacing.screenHorizontal)
             ) {
                 Spacer(modifier = Modifier.height(if (compactHeader) Spacing.s else Spacing.xxl))
-                Text(text = "AHORA", style = MaterialTheme.typography.displayLarge)
+                Text(
+                    text = "AHORA",
+                    style = brandTextStyle(
+                        MaterialTheme.typography,
+                        compactHeader,
+                        LocalDensity.current.fontScale
+                    )
+                )
                 if (!compactHeader) {
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(

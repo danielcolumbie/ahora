@@ -214,13 +214,19 @@ Verificado:
   (17sp→34sp) sigue cabiendo en la altura por defecto del `TextField`
   M3. Caso límite aceptable.
 
-Decisiones de diseño que quedan para Daniel (no se tocan sin su
-aprobación):
+Decisiones de diseño que quedaban para Daniel:
 
-1. En `compactHeader` + fuente máxima, la marca "AHORA"
+1. ~~En `compactHeader` + fuente máxima, la marca "AHORA"
    (`displayLarge` 40sp → ~80sp) domina la poca altura del landscape.
-   ¿Reducirla u ocultarla en esa combinación extrema? Toca la
-   identidad de la app: lo decide él.
+   ¿Reducirla u ocultarla en esa combinación extrema?~~ → **DECIDIDO
+   por Daniel el 2026-09-30** ("la que quede más acorde con la identidad
+   visual"): la marca es identidad, no contenido, y se ve siempre igual.
+   Implementado en `brandTextStyle()` (`ui/theme/Type.kt`, 5 tests en
+   `BrandTextStyleTest`): con encabezado compacto + escala de fuente >
+   1.3, la marca conserva sus 40dp visuales (tamaño e interletraje
+   compensados); el contenido sí escala con accesibilidad. Solo afecta a
+   `HomeScreen` (única pantalla con la marca). Sin cambio de versión.
+2. Colapsar "Completadas": ver mockup §9.1 (implementado).
 2. Colapsar "Completadas": ver mockup §9.1.
 
 ### 9.3. Pendiente (sin cambios)

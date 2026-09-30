@@ -63,3 +63,35 @@ val AhoraTypography = Typography(
         fontSize = 12.sp
     )
 )
+
+/**
+ * Escala de fuente del sistema a partir de la cual la marca deja de crecer.
+ *
+ * Por encima de este valor (tamaños "Grande"/"Enorme" de accesibilidad), la
+ * marca conservaría su tamaño diseñado en vez de escalar con el sistema.
+ */
+const val BRAND_FIXED_ABOVE_FONT_SCALE = 1.3f
+
+/**
+ * Estilo de la marca "AHORA" según el contexto.
+ *
+ * La marca es identidad, no contenido: cuando el encabezado es compacto
+ * (pantallas bajas, p. ej. teléfono en horizontal) y la fuente del sistema
+ * es muy grande (accesibilidad), la marca conserva sus 40dp visuales
+ * diseñados en vez de crecer con la escala. El contenido sí escala; el
+ * logo, no: la identidad se ve siempre igual.
+ *
+ * Función pura para poder probarla en JVM.
+ */
+fun brandTextStyle(
+    typography: Typography,
+    compactHeader: Boolean,
+    fontScale: Float,
+): TextStyle {
+    val base = typography.displayLarge
+    if (!compactHeader || fontScale <= BRAND_FIXED_ABOVE_FONT_SCALE) return base
+    return base.copy(
+        fontSize = base.fontSize / fontScale,
+        letterSpacing = base.letterSpacing / fontScale,
+    )
+}
