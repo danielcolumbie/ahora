@@ -1,6 +1,6 @@
 # IzzyOnDroid — paquete de solicitud listo
 
-> ⏳ **CONDICIÓN DE DANIEL (2026-09-29): NO ENVIAR todavía.** La publicación en tiendas va DESPUÉS de que termine el rediseño visual de la app. Cuando Daniel confirme que el rediseño está terminado, se publica un release final y ANTES DE ENVIAR se actualizan en el texto de abajo: número de versión, versionCode, URL del APK y tamaño con los del release final. Nada se envía sin su confirmación.
+> ✅ **AUTORIZADO POR DANIEL (2026-09-29, «Ya súbelo a la tiendas correspondientes»).** El texto de la solicitud ya está actualizado a la versión final post-rediseño: 1.27.1 (versionCode 30), con URL y tamaño del APK correctos. Listo para enviar.
 
 ## Estado de los metadatos fastlane (verificado 2026-09-29)
 
@@ -16,13 +16,14 @@
 
 Screenshots: IzzyOnDroid no los exige para aceptar la app; se agregarán después del rediseño si se quieren.
 
-## Release verificado en GitHub (ejemplo — reemplazar por el final)
+## Release verificado en GitHub (final post-rediseño)
 
-- Tag: `v1.26.0` — «Ahora 1.26.0 — migración a SDK 36»
-- APK firmado: `ahora-1.26.0-sdk36.apk`
-- Tamaño: 1.740.926 bytes (~1,7 MB)
-- URL: https://github.com/danielcolumbie/ahora/releases/download/v1.26.0/ahora-1.26.0-sdk36.apk
-- Package ID: `com.ahora.app` · versionCode 28 · licencia MIT · sin rastreadores · sin permiso de internet
+- Tag: `v1.27.1` — «Ahora 1.27.1»
+- APK firmado: `ahora-1.27.1-sdk36.apk`
+- Tamaño: 1.740.183 bytes (~1,7 MB)
+- URL: https://github.com/danielcolumbie/ahora/releases/download/v1.27.1/ahora-1.27.1-sdk36.apk
+- Package ID: `com.ahora.app` · versionCode 30 · licencia MIT · sin rastreadores · sin permiso de internet
+- Changelogs fastlane: `fastlane/metadata/android/{en-US,es}/changelogs/30.txt`
 
 ## Texto de la solicitud (listo para pegar)
 
@@ -39,8 +40,8 @@ Screenshots: IzzyOnDroid no los exige para aceptar la app; se agregarán despué
 - **Package name:** `com.ahora.app`
 - **Source code:** https://github.com/danielcolumbie/ahora
 - **License:** MIT
-- **Latest version:** 1.26.0 (versionCode 28)  ← actualizar con el release final post-rediseño
-- **APK:** https://github.com/danielcolumbie/ahora/releases/download/v1.26.0/ahora-1.26.0-sdk36.apk (~1.7 MB)  ← actualizar
+- **Latest version:** 1.27.1 (versionCode 30)
+- **APK:** https://github.com/danielcolumbie/ahora/releases/download/v1.27.1/ahora-1.27.1-sdk36.apk (~1.7 MB)
 - **Category:** Productivity
 - **Summary:** Sácalo de tu cabeza. Tus tareas, claras y sin ruido. / Get it out of your head. Your tasks, clear and noise-free.
 - **Description:** App de tareas minimalista, 100% offline: sin cuentas, sin publicidad, sin rastreo. Tus datos nunca salen de tu teléfono (la app ni siquiera tiene permiso de internet).
@@ -63,6 +64,4 @@ La app se desarrolló con asistencia de IA (Muse, de Meta) como herramienta de p
 
 1. Crea una cuenta en **codeberg.org** (es gratis, solo email y usuario).
 2. Entra a **https://codeberg.org/IzzyOnDroid/repodata/issues** → «New Issue» → elige la plantilla **«App Inclusion Request»**.
-3. Pega el texto de arriba (con la versión/URL/tamaño ACTUALIZADOS al release final post-rediseño) y envíalo. Suelen responder en 1–3 días; si piden algo, me lo pasas y lo resolvemos.
-
-⏳ Recuerda: el paso 3 solo cuando me confirmes que el rediseño está terminado y publiquemos el release final.
+3. Pega el texto de arriba (ya está actualizado a la 1.27.1) y envíalo. Suelen responder en 1–3 días; si piden algo, me lo pasas y lo resolvemos.

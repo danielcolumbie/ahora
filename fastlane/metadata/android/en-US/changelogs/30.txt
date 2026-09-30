@@ -1,0 +1,1 @@
+The Today view now matches the approved design: white input bar with blue microphone, and the Today header with the counter on the right.

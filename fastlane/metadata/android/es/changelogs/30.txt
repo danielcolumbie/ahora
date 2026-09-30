@@ -1,0 +1,1 @@
+La vista Hoy coincide con el diseño aprobado: barra de escritura blanca con micrófono azul, y encabezado Hoy con el contador a la derecha.

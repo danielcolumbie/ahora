@@ -1,6 +1,6 @@
 # Samsung Galaxy Store — ficha lista
 
-> ⏳ **CONDICIÓN DE DANIEL (2026-09-29): NO ENVIAR todavía.** La publicación en tiendas va DESPUÉS de que termine el rediseño visual de la app. El APK firmado y los screenshots finales deben salir de la versión post-rediseño. Nada se sube ni se envía a revisión sin su confirmación.
+> ✅ **AUTORIZADO POR DANIEL (2026-09-29, «Ya súbelo a la tiendas correspondientes»).** Datos de la ficha listos para la 1.27.1. Pendiente solo lo que le toca a Daniel desde su teléfono: email de soporte, screenshots en su A14 y crear su cuenta de vendedor en Samsung.
 
 ## Datos de la ficha (listos para pegar)
 
@@ -65,8 +65,8 @@ La app **no recolecta ningún dato**. Respuestas para el formulario de Samsung:
 ## Assets
 
 - **Icono 512×512 PNG (<1 MB):** listo en `docs/distribucion/assets/icono-512.png` (2,6 KB; punto azul sobre negro, el icono real de la app). Es el archivo que se sube en el portal.
-- **APK firmado:** ⏳ pendiente — se descarga del release FINAL post-rediseño en https://github.com/danielcolumbie/ahora/releases (el APK firmado con la llave oficial). No usar el de 1.26.0 para la tienda.
-- **Screenshots (2–3):** ⏳ los toma Daniel en su A14 DESPUÉS del rediseño. Especificaciones de Samsung: PNG o JPEG, mínimo 320 px, máximo 3840 px. Recomendado: 1080×2400 (vertical). Contenido sugerido:
+- **APK firmado:** listo — 1.27.1 en https://github.com/danielcolumbie/ahora/releases (archivo `ahora-1.27.1-sdk36.apk`, ~1,7 MB, firmado con la llave oficial). Se actualiza sin borrar tareas.
+- **Screenshots (2–3):** ⏳ los toma Daniel en su A14. Especificaciones de Samsung: PNG o JPEG, mínimo 320 px, máximo 3840 px. Recomendado: 1080×2400 (vertical). Contenido sugerido:
   1. Vista «Hoy» con varias tareas.
   2. Diálogo de crear tarea.
   3. La app en tema oscuro.
@@ -79,5 +79,3 @@ La app **no recolecta ningún dato**. Respuestas para el formulario de Samsung:
 4. Sube el icono (`icono-512.png`, lo descargas del repo) y los 2–3 screenshots que tomes en tu A14.
 5. En la pestaña **Binary**: sube el APK firmado descargado del release final de GitHub.
 6. Revisa todo y envía a revisión (tarda 1–3 días hábiles). Si Samsung pide algún cambio, me lo pasas.
-
-⏳ Los pasos 4 (screenshots) y 5 (APK) solo con la versión final post-rediseño, cuando me confirmes que está lista.
