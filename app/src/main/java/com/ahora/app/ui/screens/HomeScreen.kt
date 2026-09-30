@@ -348,7 +348,8 @@ fun HomeScreen(viewModel: MainViewModel) {
                 }
 
                 // Barra de captura: escribir, dictar o enviar desde un solo lugar.
-                // Sin bordes: la superficie la distingue del fondo con calma.
+                // Sin bordes: blanca sobre el fondo crema, como en el mockup
+                // aprobado (ronda 2).
                 TextField(
                     value = draft.text,
                     onValueChange = { draft.applyText(it) },
@@ -356,9 +357,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                     singleLine = true,
                     shape = RoundedCornerShape(Spacing.l),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
@@ -389,13 +390,13 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     Icon(
                                         Icons.Filled.Mic,
                                         // El botón alterna dictar/detener: la
-                                        // etiqueta sigue al estado (bloque I).
-                                        // El estado también se ve en el texto
-                                        // "Escuchando…" y en el tinte: nunca
-                                        // depende solo del color.
+                                        // etiqueta sigue al estado (bloque I)
+                                        // y al estar escuchando se suma el
+                                        // anillo pulsante + "Escuchando…".
+                                        // Siempre en azul, como en el mockup
+                                        // aprobado (ronda 2).
                                         contentDescription = micButtonDescription(listening),
-                                        tint = if (listening) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -503,33 +504,29 @@ fun HomeScreen(viewModel: MainViewModel) {
                     modifier = Modifier.weight(1f),
                     list = { listModifier ->
                         Column(modifier = listModifier) {
-                            // Etiqueta de sección con contador discreto: con muchas tareas
-                            // se lee de un vistazo cuánto queda, sin añadir ruido visual.
+                            // Etiqueta de sección con contador: como en el mockup
+                            // aprobado (ronda 2), "HOY" a la izquierda y el
+                            // progreso "hechas/total" a la derecha, ambos a
+                            // plena opacidad.
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "HOY",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     // Encabezado para la navegación de TalkBack (bloque I).
                                     modifier = Modifier.semantics { heading() }
                                 )
                                 if (tasks.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
                                         // Hechas/total ("2/6"): el progreso del día se lee
                                         // de un vistazo, sin añadir ruido visual.
                                         text = "${tasks.count { it.isDone }}/${tasks.size}",
                                         style = MaterialTheme.typography.titleMedium,
-                                        // Contador discreto de la etiqueta de sección (bloque B): informa sin
-    // ruido. Bloque G (1.20.0): 0.65f -> 0.90f. En oscuro, onSurfaceVariant al
-    // 65% daba 3.97:1 sobre el fondo (bajo AA); al 90% da 6.65:1. En claro,
-    // con el nuevo onSurfaceVariant (#625F58), al 90% da 4.62:1. Sigue siendo
-    // discreto frente a la etiqueta a plena opacidad, pero legible en ambas
-    // paletas (fijado por ColorContrastTest).
-    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
