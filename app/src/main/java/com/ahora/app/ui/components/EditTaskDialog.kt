@@ -41,7 +41,7 @@ fun EditTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar tarea") },
+        title = { DialogTitle("Editar tarea") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),

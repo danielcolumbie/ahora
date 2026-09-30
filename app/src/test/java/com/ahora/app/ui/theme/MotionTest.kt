@@ -43,8 +43,7 @@ class MotionTest {
     }
 
     @Test
-    fun `las constantes del bloque H tienen los valores acordados`() {
-        // Salidas cortas y discretas (eliminar fila, recoger chips): 200ms.
+    fun `las constantes del bloque H tienen los valores acordados`() {        // Salidas cortas y discretas (eliminar fila, recoger chips): 200ms.
         assertEquals(200, Motion.QUICK_EXIT_MILLIS)
         // Expansión suave de los chips de feedback: 240ms.
         assertEquals(240, Motion.SOFT_EXPAND_MILLIS)
@@ -53,5 +52,14 @@ class MotionTest {
         // Entrada suave del estado vacío: 350ms (antes un literal dentro
         // de softEnter; el bloque H lo centralizó como constante).
         assertEquals(350, Motion.SOFT_ENTER_MILLIS)
+    }
+
+    @Test
+    fun `el fundido de seleccion es rapido y discreto`() {
+        // Evolución visual 2026-09-30: la banda de la fila seleccionada en
+        // dos paneles aparece en 150ms, sin rebote.
+        assertEquals(150, Motion.SELECTION_FADE_MILLIS)
+        val spec = Motion.selectionFade<Float>()
+        assertEquals(150, spec.durationMillis)
     }
 }

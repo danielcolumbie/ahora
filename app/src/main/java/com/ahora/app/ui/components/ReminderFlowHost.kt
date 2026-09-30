@@ -126,7 +126,7 @@ fun ReminderFlowHost(
         ) {
             AlertDialog(
                 onDismissRequest = { showExactAlarmDialog = false },
-                title = { Text("Aviso a la hora exacta") },
+                title = { DialogTitle("Aviso a la hora exacta") },
                 text = {
                     Text(
                         "Para que el recordatorio suene justo a la hora que elegiste, " +

@@ -48,10 +48,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -84,9 +82,9 @@ import com.ahora.app.AhoraApplication
 import com.ahora.app.data.Task
 import com.ahora.app.speech.SpeechInputManager
 import com.ahora.app.ui.MainViewModel
-import com.ahora.app.ui.UiEvent
 import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.AdaptiveListDetail
+import com.ahora.app.ui.components.CollectUiEvents
 import com.ahora.app.ui.components.AdvancedCreationDialog
 import com.ahora.app.ui.components.CreationValues
 import com.ahora.app.ui.components.EmptyState
@@ -230,21 +228,9 @@ fun HomeScreen(viewModel: MainViewModel) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is UiEvent.TaskDeleted -> {
-                    val result = snackbarHostState.showSnackbar(
-                        message = "Tarea eliminada",
-                        actionLabel = "Deshacer",
-                        duration = SnackbarDuration.Short
-                    )
-                    if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(event.task)
-                }
-                is UiEvent.Message -> snackbarHostState.showSnackbar(event.text)
-            }
-        }
-    }
+    // Eventos de una sola vez (snackbars): la misma recolección
+    // compartida que usa Todas (CollectUiEvents), sin duplicar lógica.
+    CollectUiEvents(viewModel, snackbarHostState)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -524,7 +510,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                                 if (tasks.isNotEmpty()) {
                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
-                                        text = tasks.size.toString(),
+                                        // Hechas/total ("2/6"): el progreso del día se lee
+                                        // de un vistazo, sin añadir ruido visual.
+                                        text = "${tasks.count { it.isDone }}/${tasks.size}",
                                         style = MaterialTheme.typography.titleMedium,
                                         // Contador discreto de la etiqueta de sección (bloque B): informa sin
     // ruido. Bloque G (1.20.0): 0.65f -> 0.90f. En oscuro, onSurfaceVariant al
@@ -559,7 +547,10 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     // En dos paneles, editar selecciona la tarea
                                     // para el panel de detalle; en teléfonos se
                                     // conserva el diálogo (onEditRequest = null).
-                                    onEditRequest = onEditRequest
+                                    onEditRequest = onEditRequest,
+                                    // La fila de la tarea en el detalle se
+                                    // resalta (evolución visual 2026-09-30).
+                                    selectedTaskId = selectedTaskId
                                 )
                             }
                         }

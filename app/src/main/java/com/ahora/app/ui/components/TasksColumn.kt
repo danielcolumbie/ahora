@@ -67,7 +67,12 @@ fun TasksColumn(
     alarmScheduler: AlarmScheduler,
     scrollToTopEvents: SharedFlow<Unit>,
     modifier: Modifier = Modifier,
-    onEditRequest: ((Task) -> Unit)? = null
+    onEditRequest: ((Task) -> Unit)? = null,
+    /**
+     * En dos paneles: id de la tarea que muestra el panel de detalle, para
+     * resaltar su fila ([TaskRow.selected]). En `null` no se resalta nada.
+     */
+    selectedTaskId: Long? = null
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
     var reminderTask by remember { mutableStateOf<Task?>(null) }
@@ -141,7 +146,9 @@ fun TasksColumn(
                     // Dos paneles (bloque J): editar selecciona la tarea
                     // para el panel de detalle en vez de abrir el diálogo.
                     onEdit = onEdit,
-                    onToggleReminder = onToggleReminder
+                    onToggleReminder = onToggleReminder,
+                    // La fila de la tarea en el detalle se resalta.
+                    selected = selectedTaskId != null && task.id == selectedTaskId
                 )
             }
             if (index < tasks.lastIndex) {

@@ -146,6 +146,17 @@ object Motion {
             easing = LinearEasing
         )
 
+    /** Duración del fundido del fondo de selección en dos paneles. */
+    const val SELECTION_FADE_MILLIS = 150
+
+    /**
+     * Fundido del fondo de la fila seleccionada (evolución visual
+     * 2026-09-30): rápido y sin rebote. Solo comunica el cambio de
+     * selección, sin llamar la atención.
+     */
+    fun <T> selectionFade(): TweenSpec<T> =
+        tween(durationMillis = SELECTION_FADE_MILLIS, easing = FastOutSlowInEasing)
+
     /** Duración de la entrada de pantalla (navegación entre Hoy/Todas/Ajustes). */
     const val SCREEN_ENTER_MILLIS = 280
 

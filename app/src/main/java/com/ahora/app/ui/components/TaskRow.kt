@@ -52,12 +52,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
@@ -89,12 +94,27 @@ fun TaskRow(
     onDelete: (Task) -> Unit,
     onEdit: (Task) -> Unit,
     onToggleReminder: (Task) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * En dos paneles: la tarea que muestra el panel de detalle se resalta
+     * con una banda redondeada en `surfaceVariant` (dirección validada en
+     * Canva, mockup 03). Se dibuja con `drawBehind` para no mover el layout
+     * al seleccionar: las filas no seleccionadas quedan intactas y no hay
+     * salto visual al cambiar la selección.
+     */
+    selected: Boolean = false
 ) {
     // Al completar: el texto se tacha y baja la opacidad con animación, sin desaparecer de golpe.
     val alpha by animateFloatAsState(
         targetValue = if (task.isDone) 0.55f else 1f,
         label = "taskAlpha"
+    )
+    // Banda de selección: fundido rápido con el token centralizado.
+    val selectionColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.surfaceVariant
+        else Color.Transparent,
+        animationSpec = Motion.selectionFade(),
+        label = "rowSelection"
     )
     val textStyle = if (task.isDone) {
         MaterialTheme.typography.bodyLarge.copy(textDecoration = TextDecoration.LineThrough)
@@ -108,8 +128,21 @@ fun TaskRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Sizes.minTouchRow)
+            .drawBehind {
+                if (selectionColor.alpha > 0f) {
+                    val inset = Spacing.s.toPx()
+                    drawRoundRect(
+                        color = selectionColor,
+                        topLeft = Offset(inset, 0f),
+                        size = Size(size.width - 2 * inset, size.height),
+                        cornerRadius = CornerRadius(Spacing.m.toPx())
+                    )
+                }
+            }
             .alpha(alpha)
             .padding(vertical = Spacing.m)
+            // TalkBack: la fila seleccionada lo anuncia ("Seleccionada").
+            .semantics { if (selected) stateDescription = "Seleccionada" }
     ) {
         CircularCheckButton(
             checked = task.isDone,

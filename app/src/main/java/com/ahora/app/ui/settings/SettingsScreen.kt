@@ -54,6 +54,7 @@ import com.ahora.app.BuildConfig
 import com.ahora.app.data.ThemeMode
 import com.ahora.app.notifications.NotificationHelper
 import com.ahora.app.ui.adaptive.AdaptiveLayout
+import com.ahora.app.ui.components.DialogTitle
 import com.ahora.app.ui.components.FormSection
 import com.ahora.app.ui.components.SettingLinkRow
 import com.ahora.app.ui.components.SettingSwitchRow
@@ -292,7 +293,7 @@ fun SettingsScreen(
     if (showAbout) {
         AlertDialog(
             onDismissRequest = { showAbout = false },
-            title = { Text("Ahora ${BuildConfig.VERSION_NAME}") },
+            title = { DialogTitle("Ahora ${BuildConfig.VERSION_NAME}") },
             text = {
                 Text("Sácalo de tu cabeza.\n\nTus tareas viven solo en tu teléfono: sin cuentas, sin publicidad, sin analítica, sin servidores y sin respaldo en la nube. Si quieres conservarlas, guarda tu propio respaldo en Ajustes → Respaldo.")
             },
@@ -305,7 +306,7 @@ fun SettingsScreen(
     if (showLicenses) {
         AlertDialog(
             onDismissRequest = { showLicenses = false },
-            title = { Text("Licencias") },
+            title = { DialogTitle("Licencias") },
             text = {
                 Text(
                     "Esta app usa componentes de código abierto:\n\n" +

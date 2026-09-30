@@ -57,7 +57,7 @@ fun AdvancedCreationDialog(
 
     AlertDialog(
         onDismissRequest = ::cancel,
-        title = { Text("Opciones de la tarea") },
+        title = { DialogTitle("Opciones de la tarea") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -75,39 +75,41 @@ fun AdvancedCreationDialog(
                 // Recordatorio manual: si el lenguaje natural ya detectó
                 // uno se muestra con opción de quitarlo; si no, se ofrece
                 // añadirlo con el diálogo de dos pasos.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    val reminderAt = draft.reminderAt
-                    if (reminderAt == null) {
-                        Text(
-                            text = "Recordatorio",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(onClick = { showReminderPicker = true }) {
-                            Text("Añadir…")
-                        }
-                    } else {
-                        InputChip(
-                            selected = true,
-                            onClick = { showReminderPicker = true },
-                            label = { Text(formatReminderLabel(reminderAt)) },
-                            // Seleccionado con el acento propio (auditoría
-                            // 1.25.0): sin esto caía al `secondaryContainer`
-                            // por defecto de M3.
-                            colors = ahoraSelectedChipColors(),
-                            trailingIcon = {
-                                IconButton(onClick = { draft.setReminderAtManual(null) }) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = "Quitar recordatorio",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                FormSection(title = "Recordatorio") {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        val reminderAt = draft.reminderAt
+                        if (reminderAt == null) {
+                            Text(
+                                text = "Sin recordatorio",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(onClick = { showReminderPicker = true }) {
+                                Text("Añadir…")
                             }
-                        )
+                        } else {
+                            InputChip(
+                                selected = true,
+                                onClick = { showReminderPicker = true },
+                                label = { Text(formatReminderLabel(reminderAt)) },
+                                // Seleccionado con el acento propio (auditoría
+                                // 1.25.0): sin esto caía al `secondaryContainer`
+                                // por defecto de M3.
+                                colors = ahoraSelectedChipColors(),
+                                trailingIcon = {
+                                    IconButton(onClick = { draft.setReminderAtManual(null) }) {
+                                        Icon(
+                                            Icons.Filled.Close,
+                                            contentDescription = "Quitar recordatorio",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
