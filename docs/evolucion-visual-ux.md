@@ -148,6 +148,80 @@ los píxeles literales.
 
 ## 8. Resultado de la implementación (2026-09-30)
 
+## 9. Ronda 2 (2026-09-30, orden "avanza" de Daniel)
+
+### 9.1. Mockup: colapsar "Completadas" en Hoy (PROPUESTA, no implementado)
+
+Cambio de comportamiento → primero mockup para aprobación de Daniel.
+
+- Diseño Canva: `04-completadas-colapsadas` (ID `DAHWoR2o5iE`), en la
+  carpeta "Ahora — dirección visual" (`FAHWoPbYceQ`).
+- Enlace editable: https://canva.link/nuuebpalgg8seqg
+- Exportación: `docs/mockups/completadas-colapsadas.png`
+- Lo que propone: bajo las tareas activas, una fila táctil de ancho
+  completo con chevron hacia abajo (affordance clara de expandir),
+  texto "Completadas" en semibold gris oscuro y pill neutra con el
+  contador (3). Las completadas quedan ocultas tras el colapso.
+  Mantiene la identidad: fondo crema, sin tarjetas, sin sombras,
+  divisores finos, pills neutras.
+- Decisión explícita: NO implementado hasta que Daniel apruebe el
+  mockup. Al aprobar, la implementación sería una sección colapsable
+  en `TasksColumn` (o en `HomeScreen`), con el estado de
+  colapso/expandido recordado y TalkBack anunciando el estado.
+
+### 9.2. Auditoría: navegación y layouts con fuentes muy grandes en landscape
+
+Revisión sobre el código real (sin dispositivo). Conclusión: **no hay
+nada que corregir**; la app degrada con gracia por diseño.
+
+Verificado:
+
+- **Barra inferior** (`NavigationBar` M3, 3 destinos): etiquetas cortas
+  ("Hoy", "Todas", "Ajustes"); M3 elide con puntos suspensivos si
+  hiciera falta. En landscape hay ancho de sobra. Áreas táctiles
+  ≥48dp garantizadas por el componente. Sin problema real.
+- **Encabezado compacto** (`AdaptiveLayout.isCompactHeader`, <480dp):
+  en landscape se oculta el lema y se reducen los espaciados, en Hoy
+  y en Todas (verificado en código).
+- **La lista siempre conserva su espacio**: la columna exterior no
+  hace scroll, pero `TasksColumn` (LazyColumn) lleva `weight(1f)`:
+  el encabezado queda fijo y la lista ocupa lo que quede. Nada se
+  solapa ni se recorta; en el peor caso (fuente 2x en landscape) la
+  lista queda baja pero funcional y desplazable.
+- **Cero alturas fijas en filas**: grep confirma que no hay
+  `.height(Ndp)` literales fuera de tests; todo es `heightIn(min=…)`.
+- **El texto se envuelve, no se recorta**: `TaskRow` y `SettingRow`
+  usan `weight(1f)` en la columna de texto; las pills van en
+  `FlowRow` (se envuelven ante fuentes grandes).
+- **Dos paneles en landscape de teléfono** (≥600dp): 50/50, ~370dp
+  por panel; las filas se adaptan sin cambios.
+- **Diálogos**: M3 hace scroll interno del contenido.
+- **Campos de texto de una línea**: con fuente al 200%, el texto
+  (17sp→34sp) sigue cabiendo en la altura por defecto del `TextField`
+  M3. Caso límite aceptable.
+
+Decisiones de diseño que quedan para Daniel (no se tocan sin su
+aprobación):
+
+1. En `compactHeader` + fuente máxima, la marca "AHORA"
+   (`displayLarge` 40sp → ~80sp) domina la poca altura del landscape.
+   ¿Reducirla u ocultarla en esa combinación extrema? Toca la
+   identidad de la app: lo decide él.
+2. Colapsar "Completadas": ver mockup §9.1.
+
+### 9.3. Pendiente (sin cambios)
+
+- Medir el costo real de las animaciones escalonadas en un gama baja:
+  lo hace Daniel en su Galaxy A14, no teoría desde aquí.
+- Sin cambios de versión (sigue 1.26.0/28), sin tags, sin releases.
+
+### 9.4. Verificación de esta ronda
+
+- No se tocó código de la app (solo `docs/` + mockup PNG): no se
+  requieren tests ni builds nuevos. La base verificada sigue siendo
+  la del commit `a9b2858` (245 tests: 244 OK + 1 fallo preexistente;
+  lint 0 errores; builds OK).
+
 Plan §5 ejecutado completo:
 
 1. `DialogTitle` nuevo (`ui/components/DialogTitle.kt`): `titleLarge` +
