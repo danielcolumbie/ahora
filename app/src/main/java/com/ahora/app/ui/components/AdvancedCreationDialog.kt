@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.ahora.app.data.Tag
 import com.ahora.app.ui.theme.Spacing
 
 /**
@@ -43,6 +44,8 @@ import com.ahora.app.ui.theme.Spacing
 @Composable
 fun AdvancedCreationDialog(
     draft: CreationDraftState,
+    /** Todas las etiquetas (1.28.0): el diálogo las elige sobre el borrador. */
+    allTags: List<Tag> = emptyList(),
     onDismiss: () -> Unit,
     /** El usuario eligió una fecha/hora pasada: se avisa, no se aplica. */
     onPastReminder: () -> Unit
@@ -69,7 +72,10 @@ fun AdvancedCreationDialog(
                     dueAt = draft.dueAt,
                     onDueAtChange = { draft.setDueAtManual(it) },
                     recurrence = draft.recurrence,
-                    onRecurrenceChange = { draft.setRecurrenceManual(it) }
+                    onRecurrenceChange = { draft.setRecurrenceManual(it) },
+                    allTags = allTags,
+                    selectedTagIds = draft.tagIds,
+                    onToggleTag = { draft.toggleTag(it) }
                 )
 
                 // Recordatorio manual: si el lenguaje natural ya detectó

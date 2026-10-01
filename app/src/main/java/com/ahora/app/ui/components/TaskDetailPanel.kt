@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import com.ahora.app.data.Tag
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
@@ -53,10 +54,10 @@ import com.ahora.app.ui.theme.Spacing
  * La edición es en vivo y sin estado pendiente: el título se guarda con
  * cada cambio (nunca en blanco — vaciar el campo solo lo muestra vacío
  * en local hasta escribir de nuevo) y los chips de prioridad/fecha/
- * recurrencia se aplican al tocarlos, igual que el diálogo de edición
- * aplica al guardar. Así no hay nada que perder al rotar, al cambiar
- * de tarea ni al cerrar el panel: no existe el concepto de "cambios sin
- * guardar".
+ * recurrencia/etiquetas (1.28.0) se aplican al tocarlos, igual que el
+ * diálogo de edición aplica al guardar. Así no hay nada que perder al
+ * rotar, al cambiar de tarea ni al cerrar el panel: no existe el concepto
+ * de "cambios sin guardar".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,14 +65,22 @@ fun TaskDetailPanel(
     task: Task?,
     onToggleDone: (Task) -> Unit,
     onDelete: (Task) -> Unit,
-    onUpdateDetails: (Task, String, TaskPriority, Long?, TaskRecurrence) -> Unit,
+    /**
+     * El último parámetro (`tagIds`, null = no tocar) lleva las etiquetas
+     * (1.28.0): aquí cada toque se aplica en vivo.
+     */
+    onUpdateDetails: (Task, String, TaskPriority, Long?, TaskRecurrence, Set<Long>?) -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
     /** El usuario negó el permiso de notificaciones al guardar un recordatorio. */
     onNotifPermissionDenied: () -> Unit,
     alarmScheduler: AlarmScheduler,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Todas las etiquetas (1.28.0): para elegirlas en la sección. */
+    allTags: List<Tag> = emptyList(),
+    /** Etiquetas de la tarea en detalle (1.28.0): se derivan del mapa. */
+    selectedTags: List<Tag> = emptyList()
 ) {
     if (task == null) {
         DetailEmptyState(modifier = modifier)
@@ -95,10 +104,17 @@ fun TaskDetailPanel(
                 newTitle,
                 TaskPriority.fromLevel(task.priority),
                 task.dueAt,
-                TaskRecurrence.fromCode(task.recurrence)
+                TaskRecurrence.fromCode(task.recurrence),
+                null
             )
         }
     }
+
+    // Cada toque se aplica en vivo: las etiquetas actuales de la tarea se
+    // reconstruyen de la lista seleccionada para que ningún otro cambio las
+    // borre sin querer (null = no tocar solo vale en el diálogo, que las
+    // devuelve explícitas al confirmar).
+    val currentTagIds: Set<Long> = selectedTags.map { it.id }.toSet()
 
     Column(
         modifier = modifier
@@ -130,28 +146,39 @@ fun TaskDetailPanel(
         )
         Spacer(modifier = Modifier.height(Spacing.l))
 
-        // Prioridad, fecha límite y recurrencia: el componente compartido
-        // con los diálogos; aquí cada toque se aplica al momento.
+        // Prioridad, fecha límite, recurrencia y etiquetas (1.28.0): el
+        // componente compartido con los diálogos; aquí cada toque se aplica
+        // al momento.
         TaskFormFields(
             priority = TaskPriority.fromLevel(task.priority),
             onPriorityChange = { priority ->
                 onUpdateDetails(
                     task, task.title, priority, task.dueAt,
-                    TaskRecurrence.fromCode(task.recurrence)
+                    TaskRecurrence.fromCode(task.recurrence), currentTagIds
                 )
             },
             dueAt = task.dueAt,
             onDueAtChange = { dueAt ->
                 onUpdateDetails(
                     task, task.title, TaskPriority.fromLevel(task.priority),
-                    dueAt, TaskRecurrence.fromCode(task.recurrence)
+                    dueAt, TaskRecurrence.fromCode(task.recurrence), currentTagIds
                 )
             },
             recurrence = TaskRecurrence.fromCode(task.recurrence),
             onRecurrenceChange = { recurrence ->
                 onUpdateDetails(
                     task, task.title, TaskPriority.fromLevel(task.priority),
-                    task.dueAt, recurrence
+                    task.dueAt, recurrence, currentTagIds
+                )
+            },
+            allTags = allTags,
+            selectedTagIds = currentTagIds,
+            onToggleTag = { toggledId ->
+                val newIds = if (toggledId in currentTagIds) currentTagIds - toggledId
+                else currentTagIds + toggledId
+                onUpdateDetails(
+                    task, task.title, TaskPriority.fromLevel(task.priority),
+                    task.dueAt, TaskRecurrence.fromCode(task.recurrence), newIds
                 )
             }
         )

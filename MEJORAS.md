@@ -17,8 +17,8 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 1. ~~Búsqueda de tareas en "Todas".~~ ✅ hecho en 1.8.0 (ETAPA 9).
 2. ~~Prioridades (alta/media/baja) con color.~~ ✅ hecho en 1.9.0 (ETAPA 10).
 3. ~~Fechas de vencimiento con selector de fecha visual.~~ ✅ hecho en 1.9.0 (ETAPA 10).
-4. Etiquetas/categorías con colores.
-5. Widget para la pantalla de inicio.
+4. ~~Etiquetas/categorías con colores.~~ ✅ hecho en 1.28.0.
+5. ~~Widget para la pantalla de inicio.~~ ✅ hecho en 1.11.0 (ETAPA 12).
 6. Subtareas dentro de una tarea.
 7. Estadísticas simples (completadas por semana, racha).
 8. ~~Exportar/importar respaldo (JSON)~~ ✅ hecho en 1.4.0 (ETAPA 5).
@@ -34,6 +34,14 @@ con parches y mejoras constantes, hasta poder llevarla a más personas.
 - 2026-09-28: «También la animación se ve muy sosa» → pasada completa de diseño y animación en 1.1.0. ✅ resuelto («Y eso es solo por arriba»: seguir puliendo en próximos parches según su prueba real)
 
 ## Changelog
+
+### 1.28.0 (2026-10-01) — etiquetas con colores
+- **Crear etiquetas** en Ajustes → Etiquetas: nombre (máx. 24 caracteres) + uno de 8 colores fijos (rojo, naranja, ámbar, verde, turquesa, azul, violeta, rosa); nombres duplicados y vacíos se avisan sin guardar.
+- **Gestionar:** renombrar y cambiar el color en la propia fila; eliminar pide confirmación y dice en cuántas tareas se usa (las tareas no se borran, solo quedan sin esa etiqueta).
+- **Asignar** al crear (diálogo «Más opciones»), al editar y en el panel de detalle (se aplica en vivo); las etiquetas elegidas se ven como chips bajo la barra rápida.
+- **Ver y filtrar:** cada fila muestra sus etiquetas como pills neutras con el punto de color; en «Todas» hay chips para filtrar por una etiqueta, combinados con la búsqueda.
+- **Datos:** tablas `tags` + `task_tags` (migración 2→3, borrado en cascada, test instrumentado); el respaldo JSON pasa al formato v2 con las etiquetas por nombre (los respaldos v1 se siguen leyendo; la importación no duplica).
+- 30 tests nuevos/actualizados; 291/291 JVM en verde; `assembleDebug` + `lintDebug` OK (0 errores).
 
 ### 1.27.2 (2026-09-30) — correcciones post-auditoría de la ronda 2
 - Hallazgos bajos de `docs/auditoria-post-rediseno-1.27.0.md`:

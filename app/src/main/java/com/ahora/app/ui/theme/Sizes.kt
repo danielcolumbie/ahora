@@ -46,4 +46,7 @@ object Sizes {
 
     /** Grosor del trazo del anillo del pulso del micrófono. */
     val pulseRingStroke = 2.dp
+
+    /** Punto de color de las etiquetas (pills y chips). */
+    val tagDot = 8.dp
 }

@@ -2,8 +2,11 @@ package com.ahora.app.ui
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.ahora.app.data.SettingsRepository
+import com.ahora.app.data.Tag
+import com.ahora.app.data.TagDao
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskDao
+import com.ahora.app.data.TaskTagCrossRef
 import com.ahora.app.domain.TaskRepository
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -83,6 +86,28 @@ class ScrollToTopTest {
         override fun exactAlarmSettingsIntent(): android.content.Intent? = null
     }
 
+    /**
+     * Etiquetas (1.28.0): falso mínimo; el ViewModel solo necesita que
+     * existan los flujos (las pantallas los recolectan).
+     */
+    private class FakeTagDao : TagDao {
+        override fun observeAll(): Flow<List<Tag>> =
+            MutableStateFlow(emptyList<Tag>())
+
+        override fun observeAssignments(): Flow<List<TaskTagCrossRef>> =
+            MutableStateFlow(emptyList<TaskTagCrossRef>())
+
+        override suspend fun insert(tag: Tag): Long = 0L
+        override suspend fun update(tag: Tag) = Unit
+        override suspend fun deleteById(tagId: Long) = Unit
+        override suspend fun taskCount(tagId: Long): Int = 0
+        override suspend fun tagIdsForTask(taskId: Long): List<Long> = emptyList()
+        override suspend fun assignAll(refs: List<TaskTagCrossRef>) = Unit
+        override suspend fun unassignAll(taskId: Long, tagIds: List<Long>) = Unit
+        override suspend fun getAll(): List<Tag> = emptyList()
+        override suspend fun getAllAssignments(): List<TaskTagCrossRef> = emptyList()
+    }
+
     private fun TestScope.storeScope(): CoroutineScope =
         // Dispatchers reales, no el testScheduler virtual (ver el KDoc).
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -107,7 +132,7 @@ class ScrollToTopTest {
         try {
             val scope = storeScope()
             val vm = MainViewModel(
-                TaskRepository(FakeTaskDao(), FakeScheduler()),
+                TaskRepository(FakeTaskDao(), FakeTagDao(), FakeScheduler()),
                 FakeScheduler(),
                 settings(scope)
             )

@@ -22,6 +22,7 @@ class AppContainer(context: Context) {
 
     val taskRepository = TaskRepository(
         dao = database.taskDao(),
+        tagDao = database.tagDao(),
         scheduler = reminderScheduler
     )
 

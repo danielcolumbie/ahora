@@ -104,6 +104,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(viewModel: MainViewModel) {
     val tasks by viewModel.todayTasks.collectAsStateWithLifecycle()
+    // Etiquetas (1.28.0): para las pills de las filas, el panel de detalle
+    // y las opciones de creación. En Hoy no se filtra por etiquetas.
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val taskTags by viewModel.taskTags.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -154,7 +158,8 @@ fun HomeScreen(viewModel: MainViewModel) {
             values.priority,
             values.dueAt,
             values.recurrence,
-            values.reminderAt
+            values.reminderAt,
+            values.tagIds
         )
     }
 
@@ -454,8 +459,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                 // Chips de feedback del lenguaje natural (bloque C): muestran lo
                 // que la app entendió o lo que el usuario configuró. Entran con
                 // fundido + expansión suave: la barra ya no salta entre dos
-                // modos. Tocar un chip abre la configuración avanzada.
-                val feedbackChips = draft.feedbackChips()
+                // modos. Tocar un chip abre la configuración avanzada. Las
+                // etiquetas elegidas aparecen con su nombre (1.28.0).
+                val feedbackChips = draft.feedbackChips(tags)
                 AnimatedVisibility(
                     visible = feedbackChips.isNotEmpty(),
                     enter = Motion.softExpand(),
@@ -489,6 +495,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                     ) {
                         AdvancedCreationDialog(
                             draft = draft,
+                            allTags = tags,
                             onDismiss = { showAdvanced = false },
                             onPastReminder = { showMessage("Esa hora ya pasó, elige una futura") }
                         )
@@ -560,14 +567,19 @@ fun HomeScreen(viewModel: MainViewModel) {
                                     // Ronda 2 (2026-09-30): las completadas
                                     // se colapsan tras la fila táctil
                                     // "Completadas" (mockup aprobado).
-                                    collapsibleCompleted = true
+                                    collapsibleCompleted = true,
+                                    // Etiquetas (1.28.0): pills en las filas
+                                    // y elección en el diálogo de edición.
+                                    allTags = tags,
+                                    taskTags = taskTags
                                 )
                             }
                         }
                     },
                     detail = { detailModifier ->
+                        val detailTask = tasks.firstOrNull { it.id == selectedTaskId }
                         TaskDetailPanel(
-                            task = tasks.firstOrNull { it.id == selectedTaskId },
+                            task = detailTask,
                             onToggleDone = viewModel::toggleDone,
                             onDelete = onDetailDelete,
                             onUpdateDetails = viewModel::updateDetails,
@@ -576,6 +588,9 @@ fun HomeScreen(viewModel: MainViewModel) {
                             onPastReminder = viewModel::pastReminderSelected,
                             onNotifPermissionDenied = viewModel::notifPermissionDenied,
                             alarmScheduler = viewModel.scheduler,
+                            allTags = tags,
+                            selectedTags = detailTask?.let { taskTags[it.id].orEmpty() }
+                                .orEmpty(),
                             modifier = detailModifier
                         )
                     }

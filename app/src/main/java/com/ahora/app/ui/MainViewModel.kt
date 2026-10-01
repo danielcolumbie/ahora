@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ahora.app.data.SettingsRepository
+import com.ahora.app.data.Tag
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
+import com.ahora.app.data.filterTasksByTag
 import com.ahora.app.di.AppContainer
 import com.ahora.app.domain.TaskRepository
 import com.ahora.app.notifications.AlarmScheduler
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -92,6 +95,42 @@ class MainViewModel(
         _searchQuery.value = ""
     }
 
+    /**
+     * Filtro por etiqueta (1.28.0): `null` = sin filtro. Solo la pantalla
+     * "Todas" lo usa; Hoy no filtra por etiquetas (el filtro es local a
+     * la pantalla de exploración, igual que la búsqueda).
+     */
+    private val _tagFilter = MutableStateFlow<Long?>(null)
+    val tagFilter: StateFlow<Long?> = _tagFilter.asStateFlow()
+
+    fun setTagFilter(tagId: Long?) {
+        _tagFilter.value = tagId
+    }
+
+    /**
+     * Todas las etiquetas (1.28.0): para las pills, el filtro de "Todas"
+     * y la elección en los formularios.
+     */
+    val tags: StateFlow<List<Tag>> = repository.observeTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Mapa tarea → etiquetas (1.28.0): las filas lo usan para sus pills
+     * y el filtro para saber qué tareas llevan la etiqueta elegida.
+     */
+    val taskTags: StateFlow<Map<Long, List<Tag>>> = repository.observeTaskTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /**
+     * Tareas visibles en "Todas": búsqueda + filtro por etiqueta. Si no
+     * hay filtro ni búsqueda, equivale a [allTasks].
+     */
+    val visibleTasks: StateFlow<List<Task>> = combine(
+        searchResults, _tagFilter, taskTags
+    ) { tasks, tagId, assignments ->
+        filterTasksByTag(tasks, assignments, tagId)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     // Buffer de 1: emitir nunca suspende aunque ninguna pantalla esté
     // recolectando (p. ej. durante una transición de navegación). Sin esto,
     // borrar desde "Todas" colgaba la corrutina y se perdía el Deshacer.
@@ -148,11 +187,13 @@ class MainViewModel(
         dueAt: Long? = null,
         recurrence: TaskRecurrence = TaskRecurrence.NONE,
         /** Recordatorio del lenguaje natural (ETAPA 13), o null. */
-        reminderAt: Long? = null
+        reminderAt: Long? = null,
+        /** Etiquetas elegidas en el borrador (ids), 1.28.0. */
+        tagIds: Set<Long> = emptySet()
     ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.add(title, priority, dueAt, recurrence, reminderAt) }
+            runCatching { repository.add(title, priority, dueAt, recurrence, reminderAt, tagIds) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar la tarea")) }
         }
     }
@@ -178,11 +219,16 @@ class MainViewModel(
         title: String,
         priority: TaskPriority,
         dueAt: Long?,
-        recurrence: TaskRecurrence = TaskRecurrence.NONE
+        recurrence: TaskRecurrence = TaskRecurrence.NONE,
+        /**
+         * Etiquetas nuevas (1.28.0). `null` = no tocar: los llamadores que
+         * no manejan etiquetas no deben borrarlas sin querer.
+         */
+        tagIds: Set<Long>? = null
     ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            runCatching { repository.updateDetails(task, title, priority, dueAt, recurrence) }
+            runCatching { repository.updateDetails(task, title, priority, dueAt, recurrence, tagIds) }
                 .onFailure { _events.emit(UiEvent.Message("No se pudo guardar el cambio")) }
         }
     }

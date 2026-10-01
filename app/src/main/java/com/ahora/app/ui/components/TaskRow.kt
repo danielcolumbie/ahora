@@ -64,6 +64,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
+import com.ahora.app.data.Tag
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
@@ -95,6 +96,8 @@ fun TaskRow(
     onEdit: (Task) -> Unit,
     onToggleReminder: (Task) -> Unit,
     modifier: Modifier = Modifier,
+    /** Etiquetas de la tarea (1.28.0): se muestran como pills tras los demás metadatos. */
+    tags: List<Tag> = emptyList(),
     /**
      * En dos paneles: la tarea que muestra el panel de detalle se resalta
      * con una banda redondeada en `surfaceVariant` (dirección validada en
@@ -173,11 +176,12 @@ fun TaskRow(
                 color = MaterialTheme.colorScheme.onBackground
             )
             // Metadatos en pills neutras (el color solo comunica: prioridad
-            // alta o fecha vencida). Sin metadatos, la fila queda limpia.
+            // alta o fecha vencida; el punto de la etiqueta es dato, no
+            // acento). Sin metadatos, la fila queda limpia.
             val recurrence = TaskRecurrence.fromCode(task.recurrence)
             val hasMeta = priority != TaskPriority.NONE ||
                 task.dueAt != null || task.reminderAt != null ||
-                recurrence != TaskRecurrence.NONE
+                recurrence != TaskRecurrence.NONE || tags.isNotEmpty()
             if (hasMeta) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 FlowRow(
@@ -195,6 +199,9 @@ fun TaskRow(
                     }
                     if (recurrence != TaskRecurrence.NONE) {
                         RecurrencePill(recurrence = recurrence)
+                    }
+                    tags.forEach { tag ->
+                        TagPill(tag = tag)
                     }
                 }
             }

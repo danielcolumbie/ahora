@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import com.ahora.app.data.Tag
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
@@ -83,7 +84,11 @@ fun TasksColumn(
     tasks: List<Task>,
     onToggleDone: (Task) -> Unit,
     onDelete: (Task) -> Unit,
-    onUpdateDetails: (Task, String, TaskPriority, Long?, TaskRecurrence) -> Unit,
+    /**
+     * El último parámetro (`tagIds`, null = no tocar) lleva las etiquetas
+     * (1.28.0): el diálogo de edición las devuelve al confirmar.
+     */
+    onUpdateDetails: (Task, String, TaskPriority, Long?, TaskRecurrence, Set<Long>?) -> Unit,
     onSetReminder: (Task, Long) -> Unit,
     onClearReminder: (Task) -> Unit,
     onPastReminder: () -> Unit,
@@ -105,7 +110,11 @@ fun TasksColumn(
      * Las activas siempre visibles; las hechas, ocultas hasta expandir.
      * Solo Hoy lo activa; Todas conserva la lista plana.
      */
-    collapsibleCompleted: Boolean = false
+    collapsibleCompleted: Boolean = false,
+    /** Todas las etiquetas (1.28.0): para elegirlas en el diálogo de edición. */
+    allTags: List<Tag> = emptyList(),
+    /** Mapa tarea → etiquetas (1.28.0): para las pills de cada fila. */
+    taskTags: Map<Long, List<Tag>> = emptyMap()
 ) {
     var editingTask by remember { mutableStateOf<Task?>(null) }
     var reminderTask by remember { mutableStateOf<Task?>(null) }
@@ -194,7 +203,8 @@ fun TasksColumn(
                 showDivider = index < activeTasks.lastIndex || hasCompletedSection,
                 // animateItemPlacement vive en el scope del LazyColumn:
                 // se crea aquí y se pasa al ítem.
-                modifier = Modifier.animateItemPlacement()
+                modifier = Modifier.animateItemPlacement(),
+                tags = taskTags[task.id].orEmpty()
             )
         }
         if (hasCompletedSection) {
@@ -232,7 +242,8 @@ fun TasksColumn(
                         onToggleReminder = onToggleReminder,
                         selected = selectedTaskId != null && task.id == selectedTaskId,
                         showDivider = index < completedTasks.lastIndex,
-                        modifier = Modifier.animateItemPlacement()
+                        modifier = Modifier.animateItemPlacement(),
+                        tags = taskTags[task.id].orEmpty()
                     )
                 }
             }
@@ -251,11 +262,13 @@ fun TasksColumn(
                 initialPriority = TaskPriority.fromLevel(task.priority),
                 initialDueAt = task.dueAt,
                 initialRecurrence = TaskRecurrence.fromCode(task.recurrence),
+                allTags = allTags,
+                initialTagIds = taskTags[task.id].orEmpty().map { it.id }.toSet(),
                 onDismiss = { editingTask = null },
-                onConfirm = { title, priority, dueAt, recurrence ->
+                onConfirm = { title, priority, dueAt, recurrence, tagIds ->
                     // Tick de confirmación: el cambio quedó guardado.
                     Haptics.tick(haptics)
-                    onUpdateDetails(task, title, priority, dueAt, recurrence)
+                    onUpdateDetails(task, title, priority, dueAt, recurrence, tagIds)
                     editingTask = null
                 }
             )
@@ -293,7 +306,9 @@ private fun TaskListItem(
     onToggleReminder: (Task) -> Unit,
     selected: Boolean,
     showDivider: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Etiquetas de la tarea (1.28.0): se pasan a la fila para sus pills. */
+    tags: List<Tag> = emptyList()
 ) {
     // Cada tarea anima su entrada una sola vez: las iniciales de forma
     // escalonada y las que se añadan después, al aparecer. El retardo
@@ -322,7 +337,8 @@ private fun TaskListItem(
             onEdit = onEdit,
             onToggleReminder = onToggleReminder,
             // La fila de la tarea en el detalle se resalta.
-            selected = selected
+            selected = selected,
+            tags = tags
         )
     }
     if (showDivider) {

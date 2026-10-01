@@ -1,16 +1,22 @@
 package com.ahora.app.domain
 
+import com.ahora.app.data.Tag
+import com.ahora.app.data.TagDao
+import com.ahora.app.data.TagPalette
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.data.buildSearchPattern
+import com.ahora.app.data.combineTaskTags
 import com.ahora.app.data.nextAfter
+import com.ahora.app.data.sanitizeTagName
 import com.ahora.app.data.startOfTomorrowMillis
 import com.ahora.app.data.toCode
 import com.ahora.app.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 /**
  * Lógica de negocio de las tareas.
@@ -22,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
  */
 class TaskRepository(
     private val dao: TaskDao,
+    private val tagDao: TagDao,
     private val scheduler: AlarmScheduler,
     private val clock: () -> Long = System::currentTimeMillis
 ) {
@@ -47,6 +54,51 @@ class TaskRepository(
     fun search(query: String): Flow<List<Task>> =
         if (query.isBlank()) observeAll() else dao.search(buildSearchPattern(query))
 
+    /** Todas las etiquetas, ordenadas por nombre. */
+    fun observeTags(): Flow<List<Tag>> = tagDao.observeAll()
+
+    /**
+     * Mapa tarea → etiquetas, combinado de las etiquetas y sus
+     * asignaciones (ver [combineTaskTags]). Las dos tablas son pequeñas:
+     * no se materializa nada pesado en memoria.
+     */
+    fun observeTaskTags(): Flow<Map<Long, List<Tag>>> =
+        combine(tagDao.observeAll(), tagDao.observeAssignments(), ::combineTaskTags)
+
+    /** Crea una etiqueta. El nombre vacío lanza [IllegalArgumentException]. */
+    suspend fun createTag(name: String, colorIndex: Int): Long {
+        val clean = sanitizeTagName(name)
+            ?: throw IllegalArgumentException("El nombre de la etiqueta no puede estar vacío")
+        return tagDao.insert(
+            Tag(name = clean, colorIndex = TagPalette.sanitizeColorIndex(colorIndex))
+        )
+    }
+
+    /** Renombra una etiqueta o le cambia el color. */
+    suspend fun updateTag(tag: Tag, name: String, colorIndex: Int) {
+        val clean = sanitizeTagName(name)
+            ?: throw IllegalArgumentException("El nombre de la etiqueta no puede estar vacío")
+        tagDao.update(
+            tag.copy(name = clean, colorIndex = TagPalette.sanitizeColorIndex(colorIndex))
+        )
+    }
+
+    /**
+     * Elimina una etiqueta. Sus asignaciones desaparecen solas (CASCADE en
+     * la BD): las tareas no se borran, solo quedan sin esa etiqueta.
+     */
+    suspend fun deleteTag(tag: Tag) {
+        tagDao.deleteById(tag.id)
+    }
+
+    /** Cuántas tareas usan una etiqueta (para avisar al eliminarla). */
+    suspend fun tagTaskCount(tag: Tag): Int = tagDao.taskCount(tag.id)
+
+    /** Reemplaza las etiquetas de una tarea. */
+    suspend fun setTaskTags(taskId: Long, tagIds: Set<Long>) {
+        tagDao.replaceTags(taskId, tagIds.toList())
+    }
+
     suspend fun add(
         title: String,
         priority: TaskPriority = TaskPriority.NONE,
@@ -57,7 +109,9 @@ class TaskRepository(
          * p. ej. "llamar a las 3pm"). Si ya pasó, no se programa:
          * nunca nace una alarma en el pasado.
          */
-        reminderAt: Long? = null
+        reminderAt: Long? = null,
+        /** Etiquetas de la tarea nueva (ids). */
+        tagIds: Set<Long> = emptySet()
     ): Long {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
@@ -70,6 +124,7 @@ class TaskRepository(
                 reminderAt = reminderAt?.takeIf { it > clock() }
             )
         )
+        if (tagIds.isNotEmpty()) tagDao.replaceTags(id, tagIds.toList())
         val scheduled = reminderAt?.takeIf { it > clock() }
         if (scheduled != null) scheduler.schedule(id, scheduled)
         return id
@@ -122,7 +177,13 @@ class TaskRepository(
         title: String,
         priority: TaskPriority,
         dueAt: Long?,
-        recurrence: TaskRecurrence = TaskRecurrence.NONE
+        recurrence: TaskRecurrence = TaskRecurrence.NONE,
+        /**
+         * Etiquetas nuevas de la tarea. `null` = no tocarlas: los llamadores
+         * que no manejan etiquetas (p. ej. editar solo el título) no deben
+         * borrarlas sin querer.
+         */
+        tagIds: Set<Long>? = null
     ) {
         val clean = title.trim()
         require(clean.isNotEmpty()) { "El título no puede estar vacío" }
@@ -134,6 +195,7 @@ class TaskRepository(
                 recurrence = recurrence.toCode()
             )
         )
+        tagIds?.let { tagDao.replaceTags(task.id, it.toList()) }
     }
 
     /** Elimina y devuelve la tarea para poder deshacer. */
@@ -190,17 +252,26 @@ class TaskRepository(
     data class ImportResult(val imported: Int, val skipped: Int)
 
     /**
-     * Exporta todas las tareas a JSON. La app no usa el respaldo en la nube
+     * Exporta todas las tareas y etiquetas a JSON. La app no usa el respaldo en la nube
      * de Android: este archivo es el respaldo del usuario, bajo su control.
      */
-    suspend fun exportTasks(): String =
-        TaskBackup.tasksToJson(dao.getAll(), clock())
+    suspend fun exportTasks(): String {
+        val tasks = dao.getAll()
+        val tags = tagDao.getAll()
+        val taskTags = combineTaskTags(tags, tagDao.getAllAssignments())
+        return TaskBackup.tasksToJson(tasks, tags, taskTags, clock())
+    }
 
     /**
      * Importa tareas desde un respaldo JSON. Es idempotente: conserva los
      * ids, así que importar dos veces no duplica (REPLACE). Al final limpia
      * recordatorios vencidos y reprograma las alarmas con la reconciliación
      * existente: tras reinstalar e importar, todo vuelve a sonar.
+     *
+     * Las etiquetas (formato v2) se importan por nombre: las que ya existen
+     * (insensible a mayúsculas) se reutilizan, las nuevas se crean, y cada
+     * tarea importada recibe las suyas. Importar dos veces no duplica
+     * etiquetas. Los respaldos v1 no traen etiquetas: no se toca nada.
      */
     suspend fun importTasks(json: String): ImportResult {
         val parsed = TaskBackup.tasksFromJson(json)
@@ -208,8 +279,31 @@ class TaskRepository(
         // una sola transacción (upsertAll) en vez de una por tarea.
         parsed.tasks.forEach { task -> scheduler.cancel(task.id) }
         dao.upsertAll(parsed.tasks)
+        importTags(parsed)
         pruneExpiredReminders()
         rescheduleAll()
         return ImportResult(parsed.tasks.size, parsed.skipped)
+    }
+
+    private suspend fun importTags(parsed: TaskBackup.ParsedBackup) {
+        if (parsed.tags.isEmpty() && parsed.tagAssignments.isEmpty()) return
+        val byName = tagDao.getAll()
+            .associateBy { it.name.lowercase() }
+            .toMutableMap()
+        for (tag in parsed.tags) {
+            val key = tag.name.lowercase()
+            if (key !in byName) {
+                val id = tagDao.insert(tag.copy(id = 0))
+                byName[key] = tag.copy(id = id)
+            }
+        }
+        val importedIds = parsed.tasks.map { it.id }.toSet()
+        for ((taskId, names) in parsed.tagAssignments) {
+            // Solo tareas que entraron en este respaldo: si el archivo se
+            // editó a mano, no se tocan tareas ajenas.
+            if (taskId !in importedIds) continue
+            val ids = names.mapNotNull { byName[it.lowercase()]?.id }.toSet()
+            tagDao.replaceTags(taskId, ids.toList())
+        }
     }
 }

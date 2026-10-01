@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.ahora.app.data.Tag
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.domain.parseNaturalLanguage
@@ -20,7 +21,9 @@ data class CreationValues(
     val priority: TaskPriority,
     val dueAt: Long?,
     val recurrence: TaskRecurrence,
-    val reminderAt: Long?
+    val reminderAt: Long?,
+    /** Ids de las etiquetas elegidas (1.28.0). */
+    val tagIds: Set<Long> = emptySet()
 )
 
 /**
@@ -35,7 +38,9 @@ data class CreationSnapshot(
     val manualPriority: Boolean,
     val manualDueAt: Boolean,
     val manualRecurrence: Boolean,
-    val manualReminder: Boolean
+    val manualReminder: Boolean,
+    /** Ids de las etiquetas elegidas (1.28.0): solo se tocan a mano. */
+    val tagIds: Set<Long> = emptySet()
 )
 
 /**
@@ -54,6 +59,10 @@ data class CreationSnapshot(
  *
  * Lógica pura salvo los holders de Compose: testeable en JVM.
  * [now] y [zone] son inyectables para tests deterministas.
+ *
+ * Etiquetas (1.28.0): el borrador también guarda las elegidas. Son solo
+ * manuales — el parser de lenguaje natural no las toca — así que no
+ * llevan marca manual.
  */
 class CreationDraftState(
     private val now: () -> Long = System::currentTimeMillis,
@@ -64,6 +73,7 @@ class CreationDraftState(
     var dueAt by mutableStateOf<Long?>(null)
     var recurrence by mutableStateOf(TaskRecurrence.NONE)
     var reminderAt by mutableStateOf<Long?>(null)
+    var tagIds by mutableStateOf(setOf<Long>())
     var manualPriority by mutableStateOf(false)
     var manualDueAt by mutableStateOf(false)
     var manualRecurrence by mutableStateOf(false)
@@ -104,6 +114,11 @@ class CreationDraftState(
         manualReminder = true
     }
 
+    /** Marca/desmarca una etiqueta del borrador (1.28.0). */
+    fun toggleTag(tagId: Long) {
+        tagIds = if (tagId in tagIds) tagIds - tagId else tagIds + tagId
+    }
+
     fun snapshot(): CreationSnapshot = CreationSnapshot(
         priority = priority,
         dueAt = dueAt,
@@ -112,7 +127,8 @@ class CreationDraftState(
         manualPriority = manualPriority,
         manualDueAt = manualDueAt,
         manualRecurrence = manualRecurrence,
-        manualReminder = manualReminder
+        manualReminder = manualReminder,
+        tagIds = tagIds
     )
 
     fun restore(snapshot: CreationSnapshot) {
@@ -124,6 +140,7 @@ class CreationDraftState(
         manualDueAt = snapshot.manualDueAt
         manualRecurrence = snapshot.manualRecurrence
         manualReminder = snapshot.manualReminder
+        tagIds = snapshot.tagIds
     }
 
     /**
@@ -142,7 +159,8 @@ class CreationDraftState(
             priority = priority,
             dueAt = dueAt,
             recurrence = recurrence,
-            reminderAt = reminderAt
+            reminderAt = reminderAt,
+            tagIds = tagIds
         )
         clear()
         return values
@@ -154,6 +172,7 @@ class CreationDraftState(
         dueAt = null
         recurrence = TaskRecurrence.NONE
         reminderAt = null
+        tagIds = emptySet()
         manualPriority = false
         manualDueAt = false
         manualRecurrence = false
@@ -164,19 +183,25 @@ class CreationDraftState(
      * Chips de feedback bajo la barra rápida: lo que la app entendió del
      * lenguaje natural o lo que el usuario configuró. El recordatorio
      * conserva la frase original ("Se pondrá para hoy · 15:00").
+     * Las etiquetas aparecen con su nombre (1.28.0).
      */
-    fun feedbackChips(): List<String> = buildList {
+    fun feedbackChips(allTags: List<Tag> = emptyList()): List<String> = buildList {
         if (priority != TaskPriority.NONE) add(priority.label)
         dueAt?.let { add("Vence: ${formatDueLabel(it, now())}") }
         reminderAt?.let { add("Se pondrá para ${formatReminderLabel(it, now())}") }
         if (recurrence != TaskRecurrence.NONE) add(recurrence.label)
+        if (tagIds.isNotEmpty()) {
+            val names = allTags.filter { it.id in tagIds }.map { it.name }
+            addAll(names)
+        }
     }
 }
 
 /**
  * Serialización del borrador para `rememberSaveable`: un solo estado
  * guardable en vez de doce sueltos. El borrador sobrevive a cambios de
- * configuración y a la muerte del proceso.
+ * configuración y a la muerte del proceso. Los ids de etiqueta se guardan
+ * como lista (1.28.0); el orden no importa, al restaurar vuelven a un set.
  */
 internal fun saveCreationDraft(state: CreationDraftState): List<Any?> = listOf(
     state.text,
@@ -187,7 +212,8 @@ internal fun saveCreationDraft(state: CreationDraftState): List<Any?> = listOf(
     state.manualPriority,
     state.manualDueAt,
     state.manualRecurrence,
-    state.manualReminder
+    state.manualReminder,
+    state.tagIds.toList()
 )
 
 internal fun restoreCreationDraft(saved: List<Any?>): CreationDraftState =
@@ -201,6 +227,8 @@ internal fun restoreCreationDraft(saved: List<Any?>): CreationDraftState =
         manualDueAt = saved[6] as Boolean
         manualRecurrence = saved[7] as Boolean
         manualReminder = saved[8] as Boolean
+        @Suppress("UNCHECKED_CAST")
+        tagIds = (saved.getOrNull(9) as? List<Long>)?.toSet() ?: emptySet()
     }
 
 /** Borrador de creación con un único `rememberSaveable` (bloque C). */

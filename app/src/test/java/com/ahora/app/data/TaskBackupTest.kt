@@ -108,6 +108,56 @@ class TaskBackupTest {
         val json = TaskBackup.tasksToJson(emptyList(), exportedAt = 1_234_567_890_000)
         assertTrue(json.contains("1234567890000"))
         assertTrue(json.contains("\"format\":\"ahora-backup\""))
-        assertTrue(json.contains("\"version\":1"))
+        assertTrue(json.contains("\"version\":2"))
+    }
+
+    @Test fun `respaldo v2 incluye etiquetas y asignaciones`() {
+        val tasks = listOf(
+            Task(id = 1, title = "A", createdAt = 1000),
+            Task(id = 2, title = "B", createdAt = 1000)
+        )
+        val casa = Tag(id = 1, name = "Casa", colorIndex = 0)
+        val trabajo = Tag(id = 2, name = "Trabajo", colorIndex = 5)
+        val json = TaskBackup.tasksToJson(
+            tasks,
+            listOf(casa, trabajo),
+            mapOf(1L to listOf(casa, trabajo)),
+            exportedAt = 1
+        )
+        val parsed = TaskBackup.tasksFromJson(json)
+        // Los ids no se persisten (se regeneran al importar): se comparan
+        // nombre y color.
+        assertEquals(listOf("Casa", "Trabajo"), parsed.tags.map { it.name })
+        assertEquals(listOf(0, 5), parsed.tags.map { it.colorIndex })
+        assertEquals(listOf("Casa", "Trabajo"), parsed.tagAssignments[1])
+        assertNull(parsed.tagAssignments[2])
+    }
+
+    @Test fun `respaldo v2 sin etiquetas se lee igual que v1`() {
+        val json = TaskBackup.tasksToJson(
+            listOf(Task(id = 1, title = "A", createdAt = 1000)),
+            exportedAt = 1
+        )
+        val parsed = TaskBackup.tasksFromJson(json)
+        assertEquals(1, parsed.tasks.size)
+        assertTrue(parsed.tags.isEmpty())
+        assertTrue(parsed.tagAssignments.isEmpty())
+    }
+
+    @Test fun `etiquetas duplicadas o sin nombre se limpian al importar`() {
+        val json = """{"format":"ahora-backup","version":2,"exportedAt":1,
+            "tags":[
+                {"name":"Casa","colorIndex":0},
+                {"name":"casa","colorIndex":3},
+                {"name":"   ","colorIndex":1},
+                {"name":"Trabajo","colorIndex":99}
+            ],
+            "tasks":[{"id":1,"title":"A","createdAt":1000,"tags":["Casa","Inexistente"]}]}"""
+        val parsed = TaskBackup.tasksFromJson(json)
+        // "casa" duplica a "Casa" (insensible a mayúsculas) y la vacía se
+        // descarta; el colorIndex fuera de rango cae al primero.
+        assertEquals(listOf("Casa", "Trabajo"), parsed.tags.map { it.name })
+        assertEquals(listOf(0, 0), parsed.tags.map { it.colorIndex })
+        assertEquals(listOf("Casa", "Inexistente"), parsed.tagAssignments[1])
     }
 }

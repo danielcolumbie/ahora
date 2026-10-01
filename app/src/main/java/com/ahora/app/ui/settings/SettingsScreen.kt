@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material.icons.outlined.VolumeUp
@@ -93,10 +94,12 @@ fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showAbout by remember { mutableStateOf(false) }
     var showLicenses by remember { mutableStateOf(false) }
+    var showTags by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val settingsScroll = rememberScrollState()
 
@@ -229,6 +232,20 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(Spacing.xxl))
+            FormSection(title = "Etiquetas") {
+                SettingLinkRow(
+                    title = "Etiquetas",
+                    subtitle = when (tags.size) {
+                        0 -> "Agrupa tus tareas por categorías"
+                        1 -> "1 etiqueta creada"
+                        else -> "${tags.size} etiquetas creadas"
+                    },
+                    icon = Icons.Outlined.Label,
+                    onClick = { showTags = true }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xxl))
             FormSection(title = "Notificaciones") {
                 SettingSwitchRow(
                     title = "Notificaciones",
@@ -287,6 +304,14 @@ fun SettingsScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.m)
+        )
+    }
+
+    if (showTags) {
+        TagsDialog(
+            viewModel = viewModel,
+            onDismiss = { showTags = false },
+            onMessage = { showBackupResult(it) }
         )
     }
 

@@ -1,11 +1,15 @@
 package com.ahora.app.domain
 
+import com.ahora.app.data.Tag
+import com.ahora.app.data.TagDao
+import com.ahora.app.data.TagPalette
 import com.ahora.app.data.Task
 import com.ahora.app.data.TaskBackup
 import com.ahora.app.data.TaskDao
 import com.ahora.app.data.TaskListComparator
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
+import com.ahora.app.data.TaskTagCrossRef
 import com.ahora.app.data.nextAfter
 import com.ahora.app.data.startOfTomorrowMillis
 import com.ahora.app.data.toCode
@@ -162,15 +166,70 @@ class TaskRepositoryTest {
         override fun exactAlarmSettingsIntent(): android.content.Intent? = null
     }
 
+    /**
+     * Etiquetas en memoria (1.28.0): emula el CASCADE al borrar (quita las
+     * asignaciones de la etiqueta eliminada) y `replaceTags` como la
+     * implementación real (quita las que sobran, añade las nuevas).
+     */
+    private class FakeTagDao : TagDao {
+        private val tags = MutableStateFlow<List<Tag>>(emptyList())
+        private val refs = MutableStateFlow<List<TaskTagCrossRef>>(emptyList())
+        private var nextId = 1L
+
+        override fun observeAll(): Flow<List<Tag>> = tags
+
+        override fun observeAssignments(): Flow<List<TaskTagCrossRef>> = refs
+
+        override suspend fun insert(tag: Tag): Long {
+            val id = nextId++
+            tags.value += tag.copy(id = id)
+            return id
+        }
+
+        override suspend fun update(tag: Tag) {
+            tags.value = tags.value.map { if (it.id == tag.id) tag else it }
+        }
+
+        override suspend fun deleteById(tagId: Long) {
+            tags.value = tags.value.filter { it.id != tagId }
+            // CASCADE: al borrar la etiqueta desaparecen sus asignaciones.
+            refs.value = refs.value.filter { it.tagId != tagId }
+        }
+
+        override suspend fun taskCount(tagId: Long): Int =
+            refs.value.count { it.tagId == tagId }
+
+        override suspend fun tagIdsForTask(taskId: Long): List<Long> =
+            refs.value.filter { it.taskId == taskId }.map { it.tagId }
+
+        override suspend fun assignAll(refs: List<TaskTagCrossRef>) {
+            val current = this.refs.value.toMutableList()
+            refs.forEach { ref ->
+                if (ref !in current) current += ref
+            }
+            this.refs.value = current
+        }
+
+        override suspend fun unassignAll(taskId: Long, tagIds: List<Long>) {
+            refs.value = refs.value.filterNot { it.taskId == taskId && it.tagId in tagIds }
+        }
+
+        override suspend fun getAll(): List<Tag> = tags.value
+
+        override suspend fun getAllAssignments(): List<TaskTagCrossRef> = refs.value
+    }
+
     private lateinit var dao: FakeTaskDao
+    private lateinit var tagDao: FakeTagDao
     private lateinit var scheduler: FakeScheduler
     private lateinit var repo: TaskRepository
 
     @Before
     fun setUp() {
         dao = FakeTaskDao()
+        tagDao = FakeTagDao()
         scheduler = FakeScheduler()
-        repo = TaskRepository(dao, scheduler, clock = { NOW })
+        repo = TaskRepository(dao, tagDao, scheduler, clock = { NOW })
     }
 
     private suspend fun addTask(title: String = "Tarea"): Task {
@@ -681,5 +740,124 @@ class TaskRepositoryTest {
 
         val shown = repo.observeToday(endOfToday).first().map { it.id }.toSet()
         assertEquals(setOf(idToday, idOverdue), shown)
+    }
+
+    // ---- Etiquetas (1.28.0) ----
+
+    @Test
+    fun `createTag guarda la etiqueta con el nombre limpio`() = runTest {
+        val id = repo.createTag("  Casa  ", 3)
+        val tag = tagDao.getAll().single()
+        assertEquals(id, tag.id)
+        assertEquals("Casa", tag.name)
+        assertEquals(3, tag.colorIndex)
+    }
+
+    @Test
+    fun `createTag rechaza nombre vacio y color fuera de rango`() = runTest {
+        try {
+            repo.createTag("   ", 0)
+            fail("debería lanzar IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            // esperado
+        }
+        // El color inválido cae al primero, no falla.
+        val id = repo.createTag("X", 99)
+        assertEquals(0, tagDao.getAll().single { it.id == id }.colorIndex)
+    }
+
+    @Test
+    fun `add con tagIds asigna las etiquetas a la tarea nueva`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val trabajo = repo.createTag("Trabajo", 5)
+        val id = repo.add("Limpiar", tagIds = setOf(casa, trabajo))
+        assertEquals(setOf(casa, trabajo), tagDao.tagIdsForTask(id).toSet())
+    }
+
+    @Test
+    fun `observeTaskTags combina etiquetas y asignaciones`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val id = repo.add("Limpiar", tagIds = setOf(casa))
+        val map = repo.observeTaskTags().first()
+        assertEquals(listOf("Casa"), map[id]!!.map { it.name })
+    }
+
+    @Test
+    fun `updateDetails con tagIds reemplaza las etiquetas`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val trabajo = repo.createTag("Trabajo", 5)
+        val task = addTask("Tarea")
+        repo.setTaskTags(task.id, setOf(casa))
+        repo.updateDetails(task, "Tarea", TaskPriority.NONE, null, tagIds = setOf(trabajo))
+        assertEquals(listOf(trabajo), tagDao.tagIdsForTask(task.id))
+    }
+
+    @Test
+    fun `updateDetails sin tagIds no toca las etiquetas`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val task = addTask("Tarea")
+        repo.setTaskTags(task.id, setOf(casa))
+        repo.updateDetails(task, "Nuevo título", TaskPriority.HIGH, null)
+        assertEquals(listOf(casa), tagDao.tagIdsForTask(task.id))
+    }
+
+    @Test
+    fun `deleteTag quita la etiqueta pero conserva la tarea`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val task = addTask("Tarea")
+        repo.setTaskTags(task.id, setOf(casa))
+        assertEquals(1, repo.tagTaskCount(Tag(id = casa, name = "Casa")))
+        repo.deleteTag(Tag(id = casa, name = "Casa"))
+        assertTrue(tagDao.getAll().isEmpty())
+        assertTrue(tagDao.getAllAssignments().isEmpty())
+        assertEquals("Tarea", dao.getById(task.id)!!.title)
+    }
+
+    @Test
+    fun `deleteTask no borra las etiquetas, solo se desasocian`() = runTest {
+        val casa = repo.createTag("Casa", 0)
+        val task = addTask("Tarea")
+        repo.setTaskTags(task.id, setOf(casa))
+        repo.delete(task)
+        // La etiqueta sobrevive: la limpieza de las asignaciones de la
+        // tarea borrada la hace el CASCADE de la BD (verificado en el
+        // test instrumentado de la migración 2→3), que el falso no emula.
+        assertEquals(1, tagDao.getAll().size)
+        assertEquals("Casa", tagDao.getAll().single().name)
+    }
+
+    @Test
+    fun `importTasks trae las etiquetas del respaldo v2`() = runTest {
+        val json = """{"format":"ahora-backup","version":2,"exportedAt":1,
+            "tags":[{"name":"Casa","colorIndex":0}],
+            "tasks":[{"id":7,"title":"Tarea","createdAt":1000,"tags":["Casa","casa"]}]}"""
+        val result = repo.importTasks(json)
+        assertEquals(1, result.imported)
+        val tags = tagDao.getAll()
+        // "Casa" y "casa" se unifican: no se duplica la etiqueta.
+        assertEquals(listOf("Casa"), tags.map { it.name })
+        assertEquals(listOf(tags.single().id), tagDao.tagIdsForTask(7))
+    }
+
+    @Test
+    fun `importTasks dos veces no duplica etiquetas ni asignaciones`() = runTest {
+        val json = """{"format":"ahora-backup","version":2,"exportedAt":1,
+            "tags":[{"name":"Casa","colorIndex":0}],
+            "tasks":[{"id":7,"title":"Tarea","createdAt":1000,"tags":["Casa"]}]}"""
+        repo.importTasks(json)
+        repo.importTasks(json)
+        assertEquals(1, tagDao.getAll().size)
+        assertEquals(1, tagDao.getAllAssignments().size)
+    }
+
+    @Test
+    fun `exportTasks incluye etiquetas y asignaciones`() = runTest {
+        val casa = repo.createTag("Casa", 2)
+        val task = addTask("Tarea")
+        repo.setTaskTags(task.id, setOf(casa))
+        val parsed = TaskBackup.tasksFromJson(repo.exportTasks())
+        assertEquals(listOf("Casa"), parsed.tags.map { it.name })
+        assertEquals(listOf(2), parsed.tags.map { it.colorIndex })
+        assertEquals(listOf("Casa"), parsed.tagAssignments[task.id])
     }
 }

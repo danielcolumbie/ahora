@@ -23,23 +23,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.ahora.app.data.Tag
 import com.ahora.app.data.TaskPriority
 import com.ahora.app.data.TaskRecurrence
 import com.ahora.app.ui.theme.Spacing
 
 /**
- * Selector de prioridad, fecha límite y recurrencia de una tarea
- * (ETAPA 10 + ETAPA 11).
+ * Selector de prioridad, fecha límite, recurrencia (ETAPA 10 + ETAPA 11)
+ * y etiquetas (1.28.0) de una tarea.
  *
- * Lo comparten la creación rápida (HomeScreen) y el diálogo de edición:
- * un solo componente, un solo comportamiento. Sin dependencias nuevas:
- * DatePicker de Material3 para elegir el día y [startOfDayMillis] /
- * [reminderInstantMillis] para convertirlo al inicio del día local
- * (la fecha límite no lleva hora).
+ * Lo comparten la creación rápida (HomeScreen), el diálogo de edición y
+ * el panel de detalle: un solo componente, un solo comportamiento. Sin
+ * dependencias nuevas: DatePicker de Material3 para elegir el día y
+ * [startOfDayMillis] / [reminderInstantMillis] para convertirlo al inicio
+ * del día local (la fecha límite no lleva hora).
  *
  * La fecha se guarda como inicio del día local en milisegundos, o null
  * si la tarea no tiene fecha límite. La recurrencia se elige con chips;
  * "No se repite" es el valor por defecto.
+ *
+ * Las etiquetas se eligen con chips de las que ya existen; se crean y se
+ * gestionan en un solo lugar (Ajustes → Etiquetas), sin duplicar esa
+ * gestión aquí.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -50,7 +55,10 @@ fun TaskFormFields(
     onDueAtChange: (Long?) -> Unit,
     recurrence: TaskRecurrence,
     onRecurrenceChange: (TaskRecurrence) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allTags: List<Tag> = emptyList(),
+    selectedTagIds: Set<Long> = emptySet(),
+    onToggleTag: (Long) -> Unit = {}
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     // Chips seleccionados con el acento propio (auditoría 1.25.0): sin
@@ -137,6 +145,35 @@ fun TaskFormFields(
                         label = { Text(option.label) },
                         colors = selectedChipColors
                     )
+                }
+            }
+        }
+
+        // Etiquetas (1.28.0): chips de las que existen, con su punto de
+        // color; el seleccionado usa el acento propio como los demás
+        // chips del formulario. Sin etiquetas creadas, se orienta a dónde
+        // crearlas en vez de dejar la sección vacía.
+        FormSection(title = "Etiquetas") {
+            if (allTags.isEmpty()) {
+                Text(
+                    text = "Aún no tienes etiquetas. Créalas en Ajustes → Etiquetas.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    allTags.forEach { tag ->
+                        FilterChip(
+                            selected = tag.id in selectedTagIds,
+                            onClick = { onToggleTag(tag.id) },
+                            label = { Text(tag.name) },
+                            leadingIcon = { TagDot(colorIndex = tag.colorIndex) },
+                            colors = selectedChipColors
+                        )
+                    }
                 }
             }
         }

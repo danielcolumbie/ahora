@@ -28,9 +28,15 @@ los chips seleccionados usan el `primaryContainer` propio vía
 
 Reglas:
 - Las pills de metadatos son **neutras** (`surfaceVariant` + `onSurfaceVariant`).
-  Solo la prioridad ALTA y la fecha VENCIDA usan `error`.
+  Solo la prioridad ALTA y la fecha VENCIDA usan `error`. Las etiquetas
+  (1.28.0) son pills neutras con su punto de color: el color identifica la
+  categoría (dato), no comunica una acción.
 - La prioridad MEDIA no lleva color propio: es neutra como las demás.
 - No usar `tertiary` (no está definido en el tema; caía al default de M3).
+- Los colores de etiqueta son una **paleta fija de 8 tonos** (`TagPalette`,
+  no configurables): tonos medios que se distinguen sobre fondo claro y
+  oscuro. El punto de color es decorativo (el nombre lleva el significado)
+  y en los selectores cada color se anuncia por su nombre para TalkBack.
 - Dark mode es una paleta propia, no una inversión.
 - El widget (`res/values/colors.xml` + `values-night/colors.xml`) usa los
   mismos hex de la paleta de forma explícita — RemoteViews no lee el tema
@@ -86,6 +92,16 @@ Escala base 4: `xxs=2, xs=4, s=8, m=12, l=16, xl=20, xxl=24, xxxl=32` (dp).
   recordatorio intactos).
 - **Pill (`MetaPill`):** forma totalmente redondeada, `surfaceVariant`,
   icono 12dp + `labelSmall`. Neutra salvo alta/vencida.
+- **Etiquetas (1.28.0, `ui/components/TagViews.kt`):** `TagDot` (punto de
+  color de 8dp, decorativo) + `TagPill` (pill neutra `surfaceVariant` con
+  punto + nombre en `labelSmall`). Se crean y gestionan solo en
+  Ajustes → Etiquetas (`TagsDialog`): nombre de máx. 24 caracteres
+  (duplicados y vacíos se rechazan) + un color de la paleta fija; el
+  borrado confirma y cuenta las tareas que la usan (las tareas no se
+  borran). Se asignan en los formularios con chips de la etiqueta +
+  punto (selección con el `primaryContainer` propio, como los demás
+  chips). En «Todas» filtran con chips toggle bajo la búsqueda; el filtro
+  se combina con el texto y se apaga tocando el chip de nuevo.
 - **Barra de creación rápida:** voz + campo + enviar en una línea, sin bordes
   (la superficie la distingue del fondo). Mientras se escribe aparece el
   icono de ajustes («Más opciones») junto al de enviar. Capturar en dos

@@ -1,8 +1,11 @@
 package com.ahora.app.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,20 +48,31 @@ import com.ahora.app.ui.adaptive.AdaptiveLayout
 import com.ahora.app.ui.components.AdaptiveListDetail
 import com.ahora.app.ui.components.CollectUiEvents
 import com.ahora.app.ui.components.EmptyState
+import com.ahora.app.ui.components.TagDot
 import com.ahora.app.ui.components.TaskDetailPanel
 import com.ahora.app.ui.components.TasksColumn
+import com.ahora.app.ui.components.ahoraSelectedChipColors
 import com.ahora.app.ui.theme.Spacing
 
-/** Todas las tareas, con búsqueda por título. */
+/**
+ * Todas las tareas, con búsqueda por título y filtro por etiqueta
+ * (1.28.0).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AllTasksScreen(viewModel: MainViewModel) {
-    // Un único flujo sirve los dos estados: sin texto equivale a la lista
+    // Búsqueda + filtro por etiqueta: sin ambos equivale a la lista
     // completa, con texto a los resultados (consultados con debounce).
-    val tasks by viewModel.searchResults.collectAsStateWithLifecycle()
+    val tasks by viewModel.visibleTasks.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val taskTags by viewModel.taskTags.collectAsStateWithLifecycle()
+    val tagFilter by viewModel.tagFilter.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val searching = query.isNotBlank()
+    val filtering = tagFilter != null
+    val chipColors = ahoraSelectedChipColors()
 
     // El Deshacer también funciona aquí: antes el evento se perdía porque
     // solo la pantalla Hoy recolectaba los eventos del ViewModel.
@@ -159,6 +174,32 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                 )
                 Spacer(modifier = Modifier.height(Spacing.s))
 
+                // Filtro por etiqueta (1.28.0): chips de un solo uso, que
+                // se apagan al tocarlos de nuevo. Cada chip muestra el
+                // punto de color para identificar la etiqueta de un vistazo.
+                if (tags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        tags.forEach { tag ->
+                            FilterChip(
+                                selected = tagFilter == tag.id,
+                                onClick = {
+                                    viewModel.setTagFilter(
+                                        if (tagFilter == tag.id) null else tag.id
+                                    )
+                                },
+                                label = { Text(tag.name) },
+                                leadingIcon = { TagDot(colorIndex = tag.colorIndex) },
+                                colors = chipColors
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.s))
+                }
+
                 // Lista + detalle en pantallas anchas; solo la lista en
                 // teléfonos (el detalle se abre como diálogo, como antes).
                 AdaptiveListDetail(
@@ -167,12 +208,21 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                     list = { listModifier ->
                         Box(modifier = listModifier) {
                             if (tasks.isEmpty()) {
-                                if (searching) {
+                                if (searching || filtering) {
+                                    val filterName =
+                                        tags.firstOrNull { it.id == tagFilter }?.name
                                     EmptyState(
                                         onAdd = {},
                                         showAddButton = false,
                                         title = "Sin resultados",
-                                        subtitle = "Nada coincide con «$query».",
+                                        subtitle = when {
+                                            searching && filtering ->
+                                                "Nada coincide con «$query» en $filterName."
+                                            searching ->
+                                                "Nada coincide con «$query»."
+                                            else ->
+                                                "Ninguna tarea lleva la etiqueta $filterName."
+                                        },
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 } else {
@@ -208,15 +258,18 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                                         alarmScheduler = viewModel.scheduler,
                                         scrollToTopEvents = viewModel.scrollToTopEvents,
                                         modifier = Modifier.weight(1f),
-                                        onEditRequest = onEditRequest
+                                        onEditRequest = onEditRequest,
+                                        allTags = tags,
+                                        taskTags = taskTags
                                     )
                                 }
                             }
                         }
                     },
                     detail = { detailModifier ->
+                        val detailTask = tasks.firstOrNull { it.id == selectedTaskId }
                         TaskDetailPanel(
-                            task = tasks.firstOrNull { it.id == selectedTaskId },
+                            task = detailTask,
                             onToggleDone = viewModel::toggleDone,
                             onDelete = onDetailDelete,
                             onUpdateDetails = viewModel::updateDetails,
@@ -225,6 +278,9 @@ fun AllTasksScreen(viewModel: MainViewModel) {
                             onPastReminder = viewModel::pastReminderSelected,
                             onNotifPermissionDenied = viewModel::notifPermissionDenied,
                             alarmScheduler = viewModel.scheduler,
+                            allTags = tags,
+                            selectedTags = detailTask?.let { taskTags[it.id].orEmpty() }
+                                .orEmpty(),
                             modifier = detailModifier
                         )
                     }

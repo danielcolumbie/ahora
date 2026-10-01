@@ -145,15 +145,18 @@ class CreationDraftTest {
         val draft = draft()
         draft.applyText("Comprar pan mañana")
         draft.setPriorityManual(TaskPriority.HIGH)
+        draft.toggleTag(5L)
         val snapshot = draft.snapshot()
         draft.applyText("otra cosa pasado mañana")
         draft.setReminderAtManual(at(2026, 10, 1, 8, 0))
+        draft.toggleTag(9L)
         draft.restore(snapshot)
         assertEquals(TaskPriority.HIGH, draft.priority)
         assertEquals(at(2026, 9, 30), draft.dueAt)
         assertNull(draft.reminderAt)
         assertTrue(draft.manualPriority)
         assertFalse(draft.manualReminder)
+        assertEquals(setOf(5L), draft.tagIds)
     }
 
     @Test
@@ -161,6 +164,8 @@ class CreationDraftTest {
         val draft = draft()
         draft.applyText("Llamar urgente mañana a las 3pm")
         draft.setRecurrenceManual(TaskRecurrence.WEEKLY)
+        draft.toggleTag(5L)
+        draft.toggleTag(9L)
         val restored = restoreCreationDraft(saveCreationDraft(draft))
         assertEquals(draft.text, restored.text)
         assertEquals(draft.priority, restored.priority)
@@ -169,6 +174,26 @@ class CreationDraftTest {
         assertEquals(draft.reminderAt, restored.reminderAt)
         assertEquals(draft.manualPriority, restored.manualPriority)
         assertEquals(draft.manualRecurrence, restored.manualRecurrence)
+        assertEquals(setOf(5L, 9L), restored.tagIds)
+    }
+
+    @Test
+    fun `toggleTag marca y desmarca`() {
+        val draft = draft()
+        draft.toggleTag(5L)
+        assertEquals(setOf(5L), draft.tagIds)
+        draft.toggleTag(5L)
+        assertTrue(draft.tagIds.isEmpty())
+    }
+
+    @Test
+    fun `consumeForSave lleva las etiquetas y vacia el borrador`() {
+        val draft = draft()
+        draft.applyText("Comprar pan")
+        draft.toggleTag(5L)
+        val values = draft.consumeForSave()
+        assertEquals(setOf(5L), values.tagIds)
+        assertTrue(draft.tagIds.isEmpty())
     }
 
     @Test
